@@ -205,12 +205,17 @@ class CustomNeuralNetwork:
                 self.forward(X_batch)
                 self.backward(X_batch, y_batch)
 
+                # Binary Cross-Entropy Loss
+                epsilon = 1e-12  # Small value to avoid log(0)
+                y_pred = np.clip(self.afterActivationOutput[-1], epsilon, 1 - epsilon)  # Predicted probabilities
+                cross_entropy_loss = -np.mean(y * np.log(y_pred) + (1 - y_batch) * np.log(1 - y_pred))
+
                 # Calculate batch loss
                 if self.regularizationType == RegularizationType.L1:
-                    batch_loss = np.mean((self.afterActivationOutput[-1] - y_batch) ** 2) + \
+                    batch_loss = cross_entropy_loss + \
                                  self.regularization * self.regularization_l1(self.weights)
                 else:
-                    batch_loss = np.mean((self.afterActivationOutput[-1] - y_batch) ** 2) + \
+                    batch_loss = cross_entropy_loss + \
                                  self.regularization * self.regularization_l2(self.weights)
 
                 epoch_loss += batch_loss * len(X_batch)  # Weighted sum of batch losses
