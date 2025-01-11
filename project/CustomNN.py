@@ -1,10 +1,11 @@
-from project.utility.Enum import ActivationType, RegularizationType
+from project.utility.Enum import ActivationType, RegularizationType, TaskType
+from sklearn.metrics import mean_squared_error
 import numpy as np
 
 class CustomNeuralNetwork:
 
     def __init__(self, input_size, hidden_layers, output_size, activationType, regularizationType, learning_rate,
-                 momentum, lambd):
+                 momentum, lambd, task_type):
         """
         Initialize the neural network.
         input_size: Number of input features.
@@ -16,6 +17,7 @@ class CustomNeuralNetwork:
 
         self.activationType = activationType
         self.regularizationType = regularizationType
+        self.task_type = task_type
 
         self.learning_rate = learning_rate
         self.momentum = momentum
@@ -127,6 +129,12 @@ class CustomNeuralNetwork:
         for i, (w, b) in enumerate(zip(self.weights, self.biases)):
             # calculate the output of the layer by multiplying the output of the previous layer by the weights, then adding the biases
             z = np.dot(self.afterActivationOutput[-1], w) + b
+            if self.task_type == TaskType.REGRESSION:
+                # Output layer (no activation or linear)
+                if i == len(self.weights) - 1:
+                    a = z
+                else:
+                    a = self.apply_activationFunction(z)
             # applying the activation function
             a = self.apply_activationFunction(z)
             # append the results
@@ -205,31 +213,46 @@ class CustomNeuralNetwork:
                 self.forward(X_batch)
                 self.backward(X_batch, y_batch)
 
-                # Binary Cross-Entropy Loss
-                epsilon = 1e-12  # Small value to avoid log(0)
-                y_pred = np.clip(self.afterActivationOutput[-1], epsilon, 1 - epsilon)  # Predicted probabilities
-                cross_entropy_loss = -np.mean(y * np.log(y_pred) + (1 - y_batch) * np.log(1 - y_pred))
-
-                # Calculate batch loss
-                if self.regularizationType == RegularizationType.L1:
-                    batch_loss = cross_entropy_loss + \
-                                 self.regularization * self.regularization_l1(self.weights)
-                else:
-                    batch_loss = cross_entropy_loss + \
-                                 self.regularization * self.regularization_l2(self.weights)
-
+                if self.task_type == TaskType.CLASSIFICATION:
+                    # Binary Cross-Entropy Loss
+                    epsilon = 1e-12  # Small value to avoid log(0)
+                    y_pred = np.clip(self.afterActivationOutput[-1], epsilon, 1 - epsilon)  # Predicted probabilities
+                    print("y", y.shape)
+                    print("y_batch", y_batch.shape)
+                    print("y_pred", y_pred.shape)
+                    cross_entropy_loss = -np.mean(y_batch * np.log(y_pred) + (1 - y_batch) * np.log(1 - y_pred))
+                    # Calculate batch loss
+                    if self.regularizationType == RegularizationType.L1:
+                        batch_loss = cross_entropy_loss + \
+                                    self.regularization * self.regularization_l1(self.weights)
+                    else:
+                        batch_loss = cross_entropy_loss + \
+                                    self.regularization * self.regularization_l2(self.weights)
+                
+                elif self.task_type == TaskType.REGRESSION:
+                    # Mean Squared Error Loss
+                    if self.regularizationType==RegularizationType.L1:
+                        batch_loss = mean_squared_error(self.afterActivationOutput[-1], y_batch) + self.regularization * self.regularization_l1(self.weights)
+                    else:
+                        batch_loss = mean_squared_error(self.afterActivationOutput[-1], y_batch) + self.regularization * self.regularization_l2(self.weights)
+                    
                 epoch_loss += batch_loss * len(X_batch)  # Weighted sum of batch losses
 
             # Normalize epoch loss
             epoch_loss /= X.shape[0]
 
             # Calculate accuracy
-            train_predictions = (self.forward(X) > 0.5).astype(int)
-            train_acc = np.mean(train_predictions == y)
-
+            if self.task_type == TaskType.CLASSIFICATION:
+                train_predictions = (self.forward(X) > 0.5).astype(int)
+                train_acc = np.mean(train_predictions == y)
+                history['train_acc'].append(train_acc)
+            else:
+                train_predictions = self.forward(X)
+                train_acc = np.mean((train_predictions - y) ** 2) # Mean Squared Error
+                history['train_acc'].append(train_acc)
+                
             # Store metrics
             history['train_loss'].append(epoch_loss)
-            history['train_acc'].append(train_acc)
             history['epoch'].append(epoch)
 
             # Print progress
@@ -240,4 +263,7 @@ class CustomNeuralNetwork:
 
     def predict(self, X):
         """Make predictions using the trained model."""
-        return (self.forward(X) > 0.5).astype(int)
+        if self.task_type == TaskType.REGRESSION:
+            return self.forward(X)
+        else:
+            return (self.forward(X) > 0.5).astype(int)

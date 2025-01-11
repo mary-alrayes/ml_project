@@ -4,9 +4,9 @@ from matplotlib import pyplot as plt
 from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
 from sklearn.utils import resample
-from project.utility.Enum import RegularizationType, ActivationType
+from project.utility.Enum import RegularizationType, ActivationType, TaskType
 from project.utility.Search import Search
-from project.utility.utility import one_hot_encode, customClassificationReport, preprocessData, accuracy_score_custom, \
+from project.utility.utility import one_hot_encode, customClassificationReport, preprocessClassData, accuracy_score_custom, \
     removeId, splitToFeaturesAndTarget
 
 if __name__ == "__main__":
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     # --------------------------------------------------MONK1-----------------------------------------------------------
 
     # reshape train_X, train_Y, validation_X
-    monk1_train_X, monk1_train_Y, monk1_validation_X, monk1_validation_Y = preprocessData(monk1_train_data)
+    monk1_train_X, monk1_train_Y, monk1_validation_X, monk1_validation_Y = preprocessClassData(monk1_train_data)
 
     monk1_train_X = monk1_train_X.reshape(monk1_train_X.shape[0], -1)
     monk1_train_Y = monk1_train_Y.reshape(-1, 1)
@@ -111,11 +111,11 @@ if __name__ == "__main__":
 
     # Initialize the Search class for grid search
     search = Search(CustomNeuralNetwork, param_grid, accuracy_score_custom, activation_type=ActivationType.SIGMOID,
-                    regularization_type=RegularizationType.L2)
+                    regularization_type=RegularizationType.L2, task_type=TaskType.CLASSIFICATION)
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
-    best_params, best_score = search.grid_search(X, y, epoch=400, neurons=[3])
+    best_params, best_score = search.grid_search(X, y, epoch=400, neurons=[3], output_size=1)
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
@@ -126,7 +126,8 @@ if __name__ == "__main__":
                               learning_rate=best_params['learning_rate'],
                               momentum=best_params['momentum'],
                               lambd=best_params['lambd'],
-                              regularizationType=RegularizationType.L2
+                              regularizationType=RegularizationType.L2,
+                              task_type=TaskType.CLASSIFICATION
                               )
 
     # Train the network

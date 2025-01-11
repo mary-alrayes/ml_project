@@ -8,3 +8,7 @@ class ActivationType(Enum):
 class RegularizationType(Enum):
     L1 = "l1"
     L2 = "l2"
+
+class TaskType(Enum):
+    REGRESSION = "regression"
+    CLASSIFICATION = "classification"
