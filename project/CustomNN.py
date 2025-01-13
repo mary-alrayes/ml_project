@@ -1,5 +1,5 @@
 from project.utility.Enum import ActivationType, RegularizationType, TaskType
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 
 class CustomNeuralNetwork:
@@ -68,10 +68,10 @@ class CustomNeuralNetwork:
     def relu_derivative(x):
         return (x > 0).astype(float)
 
-    def regularization_l1(self, w):
+    def regularization_l1(self):
         return np.sum([np.sum(np.abs(w)) for w in self.weights])
 
-    def regularization_l2(self, w):
+    def regularization_l2(self):
         return np.sum([np.sum(w ** 2) for w in self.weights])
 
     """Generate a weight matrix using a Gaussian distribution."""
@@ -87,7 +87,6 @@ class CustomNeuralNetwork:
         mean = np.mean(z, axis=0, keepdims=True)
         variance = np.var(z, axis=0, keepdims=True)
         z_normalization = (z -mean)
-
 
     """Initialize weights using Xavier Initialization with optional seed for reproducibility."""
     @staticmethod
@@ -129,14 +128,10 @@ class CustomNeuralNetwork:
         for i, (w, b) in enumerate(zip(self.weights, self.biases)):
             # calculate the output of the layer by multiplying the output of the previous layer by the weights, then adding the biases
             z = np.dot(self.afterActivationOutput[-1], w) + b
-            if self.task_type == TaskType.REGRESSION:
-                # Output layer (no activation or linear)
-                if i == len(self.weights) - 1:
-                    a = z
-                else:
-                    a = self.apply_activationFunction(z)
-            # applying the activation function
-            a = self.apply_activationFunction(z)
+            if i == len(self.weights) - 1 and self.task_type == TaskType.REGRESSION:
+                a = z  # No activation for output layer in regression
+            else:
+                a = self.apply_activationFunction(z) # Apply activation function
             # append the results
             self.beforeActivationOutput.append(z)
             self.afterActivationOutput.append(a)
@@ -183,15 +178,17 @@ class CustomNeuralNetwork:
     """Train the neural network."""
 
     def fit(self, X, y, epochs=1000, batch_size=-1):
-        """
-        Train the neural network.
+        """Train the neural network.
         :param X: Input data.
         :param y: Target labels.
         :param epochs: Number of epochs to train.
         :param batch_size: Size of each mini-batch. Use -1 for full-batch training.
         """
         # Store loss and accuracy for each epoch
-        history = {'train_loss': [], 'train_acc': [], 'epoch': []}
+        if self.task_type == TaskType.CLASSIFICATION:
+            history = {'train_loss': [], 'train_acc': [], 'epoch': []}
+        else:
+            history = {'train_loss': [], 'train_r2': [], 'epoch': []}
 
         # Full-batch training if batch_size == -1
         if batch_size == -1:
@@ -212,30 +209,12 @@ class CustomNeuralNetwork:
                 # Forward and Backward Propagation
                 self.forward(X_batch)
                 self.backward(X_batch, y_batch)
-
-                if self.task_type == TaskType.CLASSIFICATION:
-                    # Binary Cross-Entropy Loss
-                    epsilon = 1e-12  # Small value to avoid log(0)
-                    y_pred = np.clip(self.afterActivationOutput[-1], epsilon, 1 - epsilon)  # Predicted probabilities
-                    print("y", y.shape)
-                    print("y_batch", y_batch.shape)
-                    print("y_pred", y_pred.shape)
-                    cross_entropy_loss = -np.mean(y_batch * np.log(y_pred) + (1 - y_batch) * np.log(1 - y_pred))
-                    # Calculate batch loss
-                    if self.regularizationType == RegularizationType.L1:
-                        batch_loss = cross_entropy_loss + \
-                                    self.regularization * self.regularization_l1(self.weights)
-                    else:
-                        batch_loss = cross_entropy_loss + \
-                                    self.regularization * self.regularization_l2(self.weights)
                 
-                elif self.task_type == TaskType.REGRESSION:
-                    # Mean Squared Error Loss
-                    if self.regularizationType==RegularizationType.L1:
-                        batch_loss = mean_squared_error(self.afterActivationOutput[-1], y_batch) + self.regularization * self.regularization_l1(self.weights)
-                    else:
-                        batch_loss = mean_squared_error(self.afterActivationOutput[-1], y_batch) + self.regularization * self.regularization_l2(self.weights)
-                    
+                if self.regularizationType==RegularizationType.L1:
+                    batch_loss = np.mean((self.afterActivationOutput[-1] - y_batch) ** 2) + self.regularization * self.regularization_l1()
+                else:
+                    batch_loss = np.mean((self.afterActivationOutput[-1] - y_batch) ** 2) + self.regularization * self.regularization_l2()
+                
                 epoch_loss += batch_loss * len(X_batch)  # Weighted sum of batch losses
 
             # Normalize epoch loss
@@ -248,8 +227,8 @@ class CustomNeuralNetwork:
                 history['train_acc'].append(train_acc)
             else:
                 train_predictions = self.forward(X)
-                train_acc = np.mean((train_predictions - y) ** 2) # Mean Squared Error
-                history['train_acc'].append(train_acc)
+                train_r2 = r2_score(train_predictions, y) # R^2 Score
+                history['train_r2'].append(train_r2)
                 
             # Store metrics
             history['train_loss'].append(epoch_loss)
@@ -257,7 +236,10 @@ class CustomNeuralNetwork:
 
             # Print progress
             if epoch % 50 == 0 or epoch == epochs - 1:
-                print(f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, Accuracy: {train_acc:.4f}")
+                if self.task_type == TaskType.CLASSIFICATION:
+                    print(f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, Accuracy: {train_acc:.4f}")
+                else:
+                    print(f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, R^2: {train_r2:.4f}")
 
         return history
 

@@ -7,7 +7,7 @@ from sklearn.utils import resample
 from sklearn.metrics import mean_squared_error
 from project.utility.Enum import RegularizationType, ActivationType, TaskType
 from project.utility.Search import Search
-from project.utility.utility import customRegressionReport, preprocessRegrData
+from project.utility.utility import customRegressionReport, preprocessRegrData, save_predictions_to_csv
 
 if __name__ == "__main__":
     train = 'cup/ML-CUP24-TR.csv'
@@ -50,26 +50,26 @@ if __name__ == "__main__":
 
     # Define the parameter grid 
     param_grid = {
-        'learning_rate': [0.01, 0.05, 0.1, 0.2],  # Learning rate values
-        'momentum': [0.6, 0.7, 0.8, 0.9],              # Momentum values
-        'lambd': [0.0, 0.001, 0.01, 0.1],              # Regularization lambda values
-        'hidden_layers': [[10, 13], [5, 10, 15], [10, 5, 4], [12, 15, 3]]    # Number of neurons in the hidden layer
+        'learning_rate': [0.1, 0.01, 0.001,],  # Learning rate values
+        'momentum': [0.7, 0.8, 0.85, 0.9],              # Momentum values
+        'lambd': [0.01, 0.05, 0.1],              # Regularization lambda values
+        'hidden_layers': [[30, 40], [45, 23], [20, 20], [45, 30]]    # Number of neurons in the hidden layer
     }
 
     # Initialize the Search class for grid search
-    search = Search(CustomNeuralNetwork, param_grid, mean_squared_error, activation_type=ActivationType.SIGMOID, 
+    search = Search(CustomNeuralNetwork, param_grid, mean_squared_error, activation_type=ActivationType.RELU, 
                     regularization_type=RegularizationType.L2, task_type=TaskType.REGRESSION)
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
-    best_params, best_score = search.grid_search(X, y, epoch=500, output_size=3)
+    best_params, best_score = search.grid_search(X, y, epoch=200, output_size=3)
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(input_size=X.shape[1],
                               hidden_layers=best_params['hidden_layers'],
                               output_size=3,
-                              activationType=ActivationType.SIGMOID,
+                              activationType=ActivationType.RELU,
                               learning_rate=best_params['learning_rate'],
                               momentum=best_params['momentum'],
                               lambd=best_params['lambd'],
@@ -77,7 +77,7 @@ if __name__ == "__main__":
                               task_type=TaskType.REGRESSION
                               )
     # Train the network
-    history = nn1.fit(X, y, epochs=500, batch_size=8)
+    history = nn1.fit(X, y, epochs=200, batch_size=32)
 
     # Plot a single graph with Loss and Training Accuracy
     plt.figure()
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     plt.plot(history['epoch'], history['train_loss'], label='Training Loss', color='blue', linestyle='-')
 
     # Plot Training Accuracy
-    plt.plot(history['epoch'], history['train_acc'], label='Training Accuracy', color='orange', linestyle='--')
+    plt.plot(history['epoch'], history['train_r2'], label='Training R^2', color='orange', linestyle='--')
 
     # Configure the plot
     plt.xlabel('Epochs')  # X-axis as the recorded epochs
@@ -102,3 +102,5 @@ if __name__ == "__main__":
     print('Predicting validation set')
     validation_nn_predictions = nn1.predict(validation_X)
     customRegressionReport(validation_Y, validation_nn_predictions, target_names=['TARGET_x', 'TARGET_y', 'TARGET_z'])
+
+    #save_predictions_to_csv(validation_nn_predictions, validation_X, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'], output_filename="predictions.csv")

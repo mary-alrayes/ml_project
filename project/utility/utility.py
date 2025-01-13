@@ -52,6 +52,7 @@ def custom_cross_validation_class(model, X, y, epoch=None, num_folds=5):
 
             # Evaluate the model on the test set
         predictions = model.predict(X_test)
+        # Convert probabilities to binary predictions if necessary
         accuracy = np.mean(predictions.flatten() == y_test.flatten())
 
         print(f"Fold {fold + 1} Accuracy: {accuracy:.4f}")
@@ -63,6 +64,7 @@ def custom_cross_validation_class(model, X, y, epoch=None, num_folds=5):
 
     # Return fold accuracies and the mean accuracy
     return mean_accuracy, fold_accuracies
+
 
 def customClassificationReport(trueValue, predictedValues):
     print("Classification report:\n", metrics.classification_report(trueValue, predictedValues, zero_division=0))
@@ -261,6 +263,7 @@ def customRegressionReport(trueValues, predictedValues, target_names):
 def preprocessRegrData(data, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z']):
     #remove the id column
     data = removeId(data)
+    data = normalize_zscore(data)
 
     #split the data to training and validation
     split_train_set, split_validation_set = splitRegrData(data, target_columns, test_size=0.2, random_state=42)
@@ -271,6 +274,41 @@ def preprocessRegrData(data, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z']
     validation_X, validation_Y = splitToFeaturesAndTargetRegr(split_validation_set, target_columns)
   
     return np.array(train_X), np.array(train_Y), np.array(validation_X), np.array(validation_Y)
+
+def normalize(data):
+    
+    data_normalized = data.copy()
+    # Select numeric columns only for normalization
+    numeric_data = data_normalized.select_dtypes(include=['float64', 'int64'])
+
+    # Normalize each numeric column separately
+    normalized_data = numeric_data.apply(lambda col: (col - col.min()) / (col.max() - col.min()))
+    
+    # Rejoin with non-numeric columns if needed
+    non_numeric_data = data.select_dtypes(exclude=['float64', 'int64'])
+    final_data = pd.concat([non_numeric_data, normalized_data], axis=1)
+    
+    return final_data
+
+def normalize_zscore(data):
+    # Create a copy of the data to avoid modifying the original DataFrame
+    data_normalized = data.copy()
+    
+    # Select only numeric columns
+    numeric_data = data_normalized.select_dtypes(include=['float64', 'int64'])
+    columns_to_normalize = numeric_data.columns
+
+    # Calculate means and standard deviations
+    means = numeric_data.mean(axis=0)
+    stds = numeric_data.std(axis=0)
+
+    # Avoid division by zero for constant columns
+    stds_replaced = stds.replace(0, 1)
+
+    # Apply Z-score normalization
+    data_normalized[columns_to_normalize] = (numeric_data - means) / stds_replaced
+
+    return data_normalized
 
 def splitRegrData(data, target_columns, test_size=0.2, random_state=42):
     """
@@ -304,4 +342,51 @@ def splitToFeaturesAndTargetRegr(data, target_columns):
     Y = data[target_columns].values.tolist()
     return X,Y
 
+def denormalize(predictions, data, target_columns):
+    """
+    Denormalizes the predicted values back to the original scale.
 
+    Parameters:
+    - predictions: The normalized predicted values.
+    - data: The original data (used to get min/max values for denormalization).
+    - target_columns: List of target columns (e.g., ['TARGET_x', 'TARGET_y', 'TARGET_z']).
+
+    Returns:
+    - Denormalized predictions.
+    """
+    # Select the columns of interest for denormalization
+    target_data = data[target_columns]
+    
+    # Denormalize the predictions for each target column
+    for idx, target_column in enumerate(target_columns):
+        min_value = target_data[target_column].min()
+        max_value = target_data[target_column].max()
+        predictions[:, idx] = predictions[:, idx] * (max_value - min_value) + min_value
+
+    return predictions
+
+def save_predictions_to_csv(predictions, validation_data, target_columns, output_filename="predictions.csv"):
+    """
+    Saves the denormalized predictions along with the original input data to a CSV file.
+
+    Parameters:
+    - predictions: The predicted values (normalized).
+    - validation_data: The validation data (includes original features).
+    - target_columns: List of target columns (e.g., ['TARGET_x', 'TARGET_y', 'TARGET_z']).
+    - output_filename: The output file name for saving the CSV.
+    """
+    # Denormalize the predictions
+    denormalized_predictions = denormalize(predictions, validation_data, target_columns)
+
+    # Create a DataFrame with the denormalized predictions
+    prediction_df = pd.DataFrame(denormalized_predictions, columns=target_columns)
+
+    # Add the original features from the validation data (excluding target columns)
+    features_df = validation_data.drop(columns=target_columns)
+
+    # Combine the features and denormalized predictions
+    final_df = pd.concat([features_df, prediction_df], axis=1)
+
+    # Save the final DataFrame to a CSV file
+    final_df.to_csv(output_filename, index=False)
+    print(f"Predictions saved to {output_filename}")
