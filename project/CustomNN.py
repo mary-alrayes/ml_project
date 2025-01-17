@@ -5,7 +5,7 @@ import numpy as np
 class CustomNeuralNetwork:
 
     def __init__(self, input_size, hidden_layers, output_size, activationType, regularizationType, learning_rate,
-                 momentum, lambd, task_type):
+                 momentum, lambd, task_type, batch_size):
         """
         Initialize the neural network.
         input_size: Number of input features.
@@ -22,6 +22,7 @@ class CustomNeuralNetwork:
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.regularization = lambd
+        self.batch_size = batch_size
 
         # list containing the number of neurons in each layer
         self.layers = [input_size] + hidden_layers + [output_size]
@@ -177,7 +178,7 @@ class CustomNeuralNetwork:
 
     """Train the neural network."""
 
-    def fit(self, X, y, epochs=1000, batch_size=-1):
+    def fit(self, X, y, epochs=1000, batch_size=-1, decay_rate=0.01, decay_steps=100):
         """Train the neural network.
         :param X: Input data.
         :param y: Target labels.
@@ -193,8 +194,17 @@ class CustomNeuralNetwork:
         # Full-batch training if batch_size == -1
         if batch_size == -1:
             batch_size = X.shape[0]
+            # No learning rate decay for full-batch training
+            decay_rate = 0
+        
+        initial_learning_rate = self.learning_rate
 
         for epoch in range(epochs):
+
+            # Learning rate decay applied only for mini-batch
+            if batch_size != X.shape[0]:
+                self.learning_rate = initial_learning_rate / (1 + decay_rate * (epoch // decay_steps))
+
             # Shuffle the data at the start of each epoch
             indices = np.random.permutation(X.shape[0])
             X_shuffled = X[indices]
