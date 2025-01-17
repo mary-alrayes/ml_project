@@ -104,9 +104,9 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        'learning_rate': [0.02, 0.05, 0.1],
-        'momentum': [0.85, 0.9, 0.95],
-        'lambd': [0.001, 0.003, 0.005, 0.01, 0.05, 0.1]
+        'learning_rate': [x/100 for x in range(1, 10)],
+        'momentum': [x/100 for x in range(90, 100)],
+        'lambd': [x/1000000 for x in range(1, 10)]
     }
 
     # Initialize the Search class for grid search
@@ -115,12 +115,12 @@ if __name__ == "__main__":
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
-    best_params, best_score = search.grid_search(X, y, epoch=400, neurons=[3], output_size=1)
+    best_params, best_score = search.grid_search(X, y, epoch=150, neurons=[4], output_size=1)
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(input_size=X.shape[1],
-                              hidden_layers=[3],
+                              hidden_layers=[4],
                               output_size=1,
                               activationType=ActivationType.SIGMOID,
                               learning_rate=best_params['learning_rate'],
@@ -131,7 +131,7 @@ if __name__ == "__main__":
                               )
 
     # Train the network
-    history = nn1.fit(X, y, epochs=400, batch_size=8)
+    history = nn1.fit(X, y, monk1_validation_X, monk1_validation_Y, epochs=150, batch_size=16)
 
     # Plot a single graph with Loss and Training Accuracy
     plt.figure()
@@ -141,6 +141,12 @@ if __name__ == "__main__":
 
     # Plot Training Accuracy
     plt.plot(history['epoch'], history['train_acc'], label='Training Accuracy', color='orange', linestyle='--')
+
+    # Plot Validation Loss
+    plt.plot(history['epoch'], history['val_loss'], label='Validation Loss', color='yellow', linestyle='-')
+
+    #Plot Validation Accuracy
+    plt.plot(history['epoch'], history['val_acc'], label='Validation Accuracy', color='green', linestyle='--')
 
     # Configure the plot
     plt.xlabel('Epochs')  # X-axis as the recorded epochs

@@ -17,7 +17,8 @@ class Search:
         self.regularization_type = regularization_type
         self.task_type = task_type
 
-    def grid_search(self, X, y, epoch=100, neurons=[3], output_size=1):
+    def grid_search(self, X, y, epoch=100, neurons=[3], output_size=1, X_val=None, y_val=None):
+
         best_score_class = -float("inf")
         best_score_regr = float("inf")
         best_params = None
@@ -40,7 +41,8 @@ class Search:
                             task_type=self.task_type
                         )
                         # Perform cross-validation to get the mean accuracy
-                        mean_accuracy, accuracies = custom_cross_validation_class(model, X, y, epoch=epoch)
+                        mean_accuracy, accuracies = custom_cross_validation_class(model, X, y, X_val=X_val, y_val=y_val,
+                                                                                  epoch=epoch)
                         score = mean_accuracy
                         # Log the parameters and score for debugging
                         print(
@@ -48,7 +50,7 @@ class Search:
                         )
                         print("-----------------------------------------------------")
                         # Update the best score and parameters if a better score is found
-                        if score > best_score_class:  
+                        if score > best_score_class:
                             best_score_class = score
                             best_params = {
                                 "learning_rate": learning_rate,
@@ -121,7 +123,7 @@ class Search:
                         regularizationType=self.regularization_type,
                         task_type=self.task_type
                     )
-                    
+
                     model.fit(X_train, y_train, epochs=epoch, batch_size=8)
 
                     predictions = model.predict(X_val)
@@ -142,7 +144,6 @@ class Search:
                             "lambd": lambd,
                         }
         return best_params, best_score
-
 
     import random
 
@@ -213,7 +214,7 @@ class Search:
                 print("\nNo valid parameters found during grid search.")
 
         return best_params, best_score
-    
+
     """def grid_search(self, X, y, param_grid, num_folds=5, epochs=100, batch_size=32):
         Perform grid search with k-fold cross-validation.
         

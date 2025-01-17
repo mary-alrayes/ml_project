@@ -8,13 +8,15 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.metrics._plot.confusion_matrix import ConfusionMatrixDisplay
 
+
 # function to remove the id column from the data
 def removeId(data):
     return data.drop('ID', axis=1, errors='ignore')
 
-#----------------------------CLASSIFICATION-----------------------------------
 
-def custom_cross_validation_class(model, X, y, epoch=None, num_folds=5):
+# ----------------------------CLASSIFICATION-----------------------------------
+
+def custom_cross_validation_class(model, X, y, X_val, y_val, epoch=None, num_folds=5):
     """
     Perform stratified k-fold cross-validation
 
@@ -46,9 +48,9 @@ def custom_cross_validation_class(model, X, y, epoch=None, num_folds=5):
 
         # Train the model
         if epoch is not None:
-            model.fit(X_train, y_train.reshape(-1, 1), epochs=epoch)
+            model.fit(X_train, y_train.reshape(-1, 1), X_val, y_val, epochs=epoch, batch_size=16)
         else:
-            model.fit(X_train, y_train.reshape(-1, 1))
+            model.fit(X_train, y_train.reshape(-1, 1), X_val, y_val)
 
             # Evaluate the model on the test set
         predictions = model.predict(X_test)
@@ -80,6 +82,7 @@ def customClassificationReport(trueValue, predictedValues):
     print('Recall: ', recall_score(trueValue, predictedValues, average='weighted', zero_division=0))
     print('F1: ', f1_score(trueValue, predictedValues, average='weighted', zero_division=0))
 
+
 def one_hot_encode(data):
     # Step 1: Trova le categorie uniche
     unique_categories = list(set(data))
@@ -95,6 +98,7 @@ def one_hot_encode(data):
         one_hot_encoded.append(one_hot_vector)
 
     return one_hot_encoded, category_to_index
+
 
 def preprocessClassData(data):
     # remove the id column
@@ -135,6 +139,7 @@ def splitToFeaturesAndTarget(data):
     Y = data['target'].values.tolist()
     return X, Y
 
+
 # function to split the data to training and validation while preserving the proportion of a specific target in the
 # dataset
 def splitData(data, feature):
@@ -147,6 +152,7 @@ def splitData(data, feature):
 
     return split_train_set, split_validation_set
 
+
 # Scoring function for the neural network
 def accuracy_score_custom(nn_model, X, y):
     predictions = nn_model.predict(X)
@@ -154,7 +160,7 @@ def accuracy_score_custom(nn_model, X, y):
     return np.mean(predictions == y)
 
 
-#----------------------------REGRESSION-----------------------------------
+# ----------------------------REGRESSION-----------------------------------
 
 def custom_cross_validation_regr(model, X, y, epoch=None, num_folds=5, metric='mse'):
     """
@@ -179,10 +185,10 @@ def custom_cross_validation_regr(model, X, y, epoch=None, num_folds=5, metric='m
     kf = KFold(n_splits=num_folds, shuffle=True, random_state=42)
 
     fold_scores = []
-    
+
     for fold, (train_idx, test_idx) in enumerate(kf.split(X)):
         print(f"Fold {fold + 1}/{num_folds}")
-        
+
         # Split data
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
@@ -191,11 +197,11 @@ def custom_cross_validation_regr(model, X, y, epoch=None, num_folds=5, metric='m
 
         # Train the model
         if epoch is not None:
-            model.fit(X_train, y_train.reshape(-1, 3), epochs=epoch)
+            model.fit(X_train, y_train.reshape(-1, 3), epochs=epoch, batch_size=10)
         else:
-            model.fit(X_train, y_train.reshape(-1, 3))  
-        
-        # Evaluate the model on the test set
+            model.fit(X_train, y_train.reshape(-1, 3))
+
+            # Evaluate the model on the test set
         predictions = model.predict(X_test)
 
         # Calculate the chosen regression metric
@@ -205,7 +211,7 @@ def custom_cross_validation_regr(model, X, y, epoch=None, num_folds=5, metric='m
             score = mean_absolute_error(y_test, predictions)
         else:
             raise ValueError(f"Unsupported metric: {metric}")
-        
+
         print(f"Fold {fold + 1} {metric.upper()}: {score:.4f}")
         print('--------------------------------------------')
         fold_scores.append(score)
@@ -216,18 +222,19 @@ def custom_cross_validation_regr(model, X, y, epoch=None, num_folds=5, metric='m
     # Return fold scores and the mean score
     return mean_score, fold_scores
 
+
 def customRegressionReport(trueValues, predictedValues, target_names):
     # Print individual regression metrics
     mae = mean_absolute_error(trueValues, predictedValues)
     mse = mean_squared_error(trueValues, predictedValues)
     rmse = mse ** 0.5
     r2 = r2_score(trueValues, predictedValues)
-    
+
     print(f"Mean Absolute Error (MAE): {mae:.4f}")
     print(f"Mean Squared Error (MSE): {mse:.4f}")
     print(f"Root Mean Squared Error (RMSE): {rmse:.4f}")
     print(f"R^2 Score: {r2:.4f}")
-    
+
     # Visualization: scatter plots for predictions vs true values
     if target_names is not None:
         for i, target_name in enumerate(target_names):
@@ -240,7 +247,7 @@ def customRegressionReport(trueValues, predictedValues, target_names):
             # Plot predicted values
             plt.scatter(trueValues[:, i], predictedValues[:, i], alpha=0.5, color="blue")
             # Line y = x
-            plt.plot([min_val, max_val], [min_val, max_val], color="red", linestyle="--")  
+            plt.plot([min_val, max_val], [min_val, max_val], color="red", linestyle="--")
             plt.xlabel("True Values")
             plt.ylabel("Predicted Values")
             plt.title(f"True vs Predicted: {target_name}")
@@ -260,40 +267,42 @@ def customRegressionReport(trueValues, predictedValues, target_names):
         plt.grid()
         plt.show()
 
+
 def preprocessRegrData(data, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z']):
-    #remove the id column
+    # remove the id column
     data = removeId(data)
     data = normalize_zscore(data)
 
-    #split the data to training and validation
+    # split the data to training and validation
     split_train_set, split_validation_set = splitRegrData(data, target_columns, test_size=0.2, random_state=42)
-    #split the data to features and target
+    # split the data to features and target
     train_X, train_Y = splitToFeaturesAndTargetRegr(split_train_set, target_columns)
 
-    #validation set
+    # validation set
     validation_X, validation_Y = splitToFeaturesAndTargetRegr(split_validation_set, target_columns)
-  
+
     return np.array(train_X), np.array(train_Y), np.array(validation_X), np.array(validation_Y)
 
+
 def normalize(data):
-    
     data_normalized = data.copy()
     # Select numeric columns only for normalization
     numeric_data = data_normalized.select_dtypes(include=['float64', 'int64'])
 
     # Normalize each numeric column separately
     normalized_data = numeric_data.apply(lambda col: (col - col.min()) / (col.max() - col.min()))
-    
+
     # Rejoin with non-numeric columns if needed
     non_numeric_data = data.select_dtypes(exclude=['float64', 'int64'])
     final_data = pd.concat([non_numeric_data, normalized_data], axis=1)
-    
+
     return final_data
+
 
 def normalize_zscore(data):
     # Create a copy of the data to avoid modifying the original DataFrame
     data_normalized = data.copy()
-    
+
     # Select only numeric columns
     numeric_data = data_normalized.select_dtypes(include=['float64', 'int64'])
     columns_to_normalize = numeric_data.columns
@@ -310,6 +319,7 @@ def normalize_zscore(data):
 
     return data_normalized
 
+
 def splitRegrData(data, target_columns, test_size=0.2, random_state=42):
     """
     Split data into training and validation sets for multi-target regression.
@@ -324,7 +334,7 @@ def splitRegrData(data, target_columns, test_size=0.2, random_state=42):
     - split_train_set: Training set.
     - split_validation_set: Validation set.
     """
-    
+
     # Extract features (X) and targets (y)
     X = data.drop(columns=target_columns)
     y = data[target_columns]
@@ -336,11 +346,13 @@ def splitRegrData(data, target_columns, test_size=0.2, random_state=42):
 
     return split_train_set, split_validation_set
 
+
 # function to split data to features and target
 def splitToFeaturesAndTargetRegr(data, target_columns):
     X = data.drop(target_columns, axis=1).values.tolist()
     Y = data[target_columns].values.tolist()
-    return X,Y
+    return X, Y
+
 
 def denormalize(predictions, data, target_columns):
     """
@@ -356,7 +368,7 @@ def denormalize(predictions, data, target_columns):
     """
     # Select the columns of interest for denormalization
     target_data = data[target_columns]
-    
+
     # Denormalize the predictions for each target column
     for idx, target_column in enumerate(target_columns):
         min_value = target_data[target_column].min()
@@ -364,6 +376,7 @@ def denormalize(predictions, data, target_columns):
         predictions[:, idx] = predictions[:, idx] * (max_value - min_value) + min_value
 
     return predictions
+
 
 def save_predictions_to_csv(predictions, validation_data, target_columns, output_filename="predictions.csv"):
     """
