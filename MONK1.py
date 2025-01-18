@@ -1,100 +1,74 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split
+
 from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
 from sklearn.utils import resample
 from project.utility.Enum import RegularizationType, ActivationType, TaskType
 from project.utility.Search import Search
-from project.utility.utility import (
-    one_hot_encode,
-    customClassificationReport,
-    preprocessClassificationData,
-    accuracy_score_custom_for_grid_search,
-    removeId,
-    splitToFeaturesAndTargetClassification,
-)
+from project.utility.utility import one_hot_encode, customClassificationReport, removeId, preprocessClassificationData, \
+    accuracy_score_custom_for_grid_search, splitToFeaturesAndTargetClassification
 
 if __name__ == "__main__":
-    monk1_train = "monk/monks-1.train"
-    monk1_test = "monk/monks-1.test"
+    monk1_train = 'monk/monks-1.train'
+    monk1_test = 'monk/monks-1.test'
 
     # Load training data
-    monk1_train_data = pd.read_csv(
-        monk1_train,
-        sep=" ",
-        header=None,
-    )
+    monk1_train_data = pd.read_csv(monk1_train, sep=' ', header=None, )
     # Drop the first column (not needed for training)
     monk1_train_data = monk1_train_data.drop(monk1_train_data.columns[0], axis=1)
     # Rename columns according to dataset description
-    monk1_train_data.rename(
-        columns={
-            1: "target",
-            2: "a1",
-            3: "a2",
-            4: "a3",
-            5: "a4",
-            6: "a5",
-            7: "a6",
-            8: "ID",
-        },
-        inplace=True,
-    )
+    monk1_train_data.rename(columns={1: 'target',
+                                     2: 'a1',
+                                     3: 'a2',
+                                     4: 'a3',
+                                     5: 'a4',
+                                     6: 'a5',
+                                     7: 'a6',
+                                     8: 'ID'
+                                     }, inplace=True)
 
     # Load testing data
-    monk1_test_data = pd.read_csv(
-        monk1_test,
-        sep=" ",
-        header=None,
-    )
+    monk1_test_data = pd.read_csv(monk1_test, sep=' ', header=None, )
     # Drop the first column (not needed for testing)
     monk1_test_data = monk1_test_data.drop(monk1_test_data.columns[0], axis=1)
     # Rename columns according to dataset description
-    monk1_test_data.rename(
-        columns={
-            1: "target",
-            2: "a1",
-            3: "a2",
-            4: "a3",
-            5: "a4",
-            6: "a5",
-            7: "a6",
-            8: "ID",
-        },
-        inplace=True,
-    )
+    monk1_test_data.rename(columns={1: 'target',
+                                    2: 'a1',
+                                    3: 'a2',
+                                    4: 'a3',
+                                    5: 'a4',
+                                    6: 'a5',
+                                    7: 'a6',
+                                    8: 'ID'
+                                    }, inplace=True)
 
     # Print loaded data for verification
-    print("MONK1")
-    print("Train data")
+    print('MONK1')
+    print('Train data')
     print(monk1_train_data.head())
-    print("Test data")
+    print('Test data')
     print(monk1_test_data.head())
 
     # Separate majority and minority classes
-    majority_class = monk1_train_data[monk1_train_data["target"] == 1]
-    minority_class = monk1_train_data[monk1_train_data["target"] == 0]
+    majority_class = monk1_train_data[monk1_train_data['target'] == 1]
+    minority_class = monk1_train_data[monk1_train_data['target'] == 0]
 
     # Oversample the minority class to match the majority class size
-    minority_class = resample(
-        minority_class,
-        replace=True,  # Sample with replacement
-        n_samples=len(majority_class),  # Match majority class size
-        random_state=62,
-    )  # For reproducibility
+    minority_class = resample(minority_class,
+                              replace=True,  # Sample with replacement
+                              n_samples=len(majority_class),  # Match majority class size
+                              random_state=62)  # For reproducibility
 
     # Combine the oversampled minority class with the majority class
     monk1_train_data = pd.concat([majority_class, minority_class])
 
     # Shuffle the balanced dataset
-    monk1_train_data = monk1_train_data.sample(frac=1, random_state=62).reset_index(
-        drop=True
-    )
+    monk1_train_data = monk1_train_data.sample(frac=1, random_state=62).reset_index(drop=True)
 
     # Print the balanced dataset for verification
-    print("Balancing completed:")
-    print(monk1_train_data["target"].value_counts())
+    print('Balancing completed:')
+    print(monk1_train_data['target'].value_counts())
 
     # The balanced dataset is now ready for training
     # Use monk1_train_data for training your model
@@ -102,9 +76,7 @@ if __name__ == "__main__":
     # --------------------------------------------------MONK1-----------------------------------------------------------
 
     # reshape train_X, train_Y, validation_X
-    monk1_train_X, monk1_train_Y, monk1_validation_X, monk1_validation_Y = (
-        preprocessClassificationData(monk1_train_data)
-    )
+    monk1_train_X, monk1_train_Y, monk1_validation_X, monk1_validation_Y = preprocessClassificationData(monk1_train_data)
 
     monk1_train_X = monk1_train_X.reshape(monk1_train_X.shape[0], -1)
     monk1_train_Y = monk1_train_Y.reshape(-1, 1)
@@ -124,10 +96,7 @@ if __name__ == "__main__":
     monk1_validation_X = monk1_validation_X.reshape(monk1_validation_X.shape[0], -1)
 
     print(f"train X shape: {X.shape[1]}")
-    print(
-        "Nomi delle colonne di X:",
-        X.columns if hasattr(X, "columns") else "X non è un DataFrame",
-    )
+    print("Nomi delle colonne di X:", X.columns if hasattr(X, 'columns') else "X non è un DataFrame")
 
     print(f"train Y shape: {y.shape}")
 
@@ -135,91 +104,54 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [x / 100 for x in range(1, 10)],
-        "momentum": [x / 100 for x in range(90, 100)],
-        "lambd": [x / 1000000 for x in range(1, 10)],
+        'learning_rate': [x/10 for x in range(1, 10)],
+        'momentum': [x/100 for x in range(80, 90)],
+        'lambd': [0.0]
     }
 
     # Initialize the Search class for grid search
-    search = Search(
-        CustomNeuralNetwork,
-        param_grid,
-        accuracy_score_custom_for_grid_search,
-        activation_type=ActivationType.SIGMOID,
-        regularization_type=RegularizationType.L2,
-        task_type=TaskType.CLASSIFICATION,
-    )
+    search = Search(CustomNeuralNetwork, param_grid, accuracy_score_custom_for_grid_search, activation_type=ActivationType.SIGMOID,
+                    regularization_type=RegularizationType.L2, task_type=TaskType.CLASSIFICATION)
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
-    best_params, best_score = search.grid_search(
-        X, y, epoch=300, neurons=[3], output_size=1
-    )
-    """X_train, X_val, y_train, y_val = train_test_split(monk1_train_X, monk1_train_Y, test_size=0.2, random_state=42)
-    best_params, best_score = search.holdoutValidation(X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1)"""
+    best_params, best_score = search.grid_search(X, y, epoch=200, neurons=[3], output_size=1)
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
-    nn1 = CustomNeuralNetwork(
-        input_size=X.shape[1],
-        hidden_layers=[4],
-        output_size=1,
-        activationType=ActivationType.SIGMOID,
-        learning_rate=best_params["learning_rate"],
-        momentum=best_params["momentum"],
-        lambd=best_params["lambd"],
-        regularizationType=RegularizationType.L2,
-        task_type=TaskType.CLASSIFICATION,
-    )
+    nn1 = CustomNeuralNetwork(input_size=X.shape[1],
+                              hidden_layers=[3],
+                              output_size=1,
+                              activationType=ActivationType.SIGMOID,
+                              learning_rate=best_params['learning_rate'],
+                              momentum=best_params['momentum'],
+                              lambd=best_params['lambd'],
+                              regularizationType=RegularizationType.L2,
+                              task_type=TaskType.CLASSIFICATION
+                              )
 
     # Train the network
-    history = nn1.fit(
-        X, y, monk1_validation_X, monk1_validation_Y, epochs=150, batch_size=16
-    )
+    history = nn1.fit(X, y, monk1_validation_X, monk1_validation_Y, epochs=200, batch_size=10)
 
     # Plot a single graph with Loss and Training Accuracy
     plt.figure()
 
     # Plot Training Loss
-    plt.plot(
-        history["epoch"],
-        history["train_loss"],
-        label="Training Loss",
-        color="blue",
-        linestyle="-",
-    )
+    plt.plot(history['epoch'], history['train_loss'], label='Training Loss', color='blue', linestyle='-')
 
     # Plot Training Accuracy
-    plt.plot(
-        history["epoch"],
-        history["train_acc"],
-        label="Training Accuracy",
-        color="orange",
-        linestyle="--",
-    )
+    plt.plot(history['epoch'], history['train_acc'], label='Training Accuracy', color='orange', linestyle='--')
 
     # Plot Validation Loss
-    plt.plot(
-        history["epoch"],
-        history["val_loss"],
-        label="Validation Loss",
-        color="yellow",
-        linestyle="-",
-    )
+    plt.plot(history['epoch'], history['val_loss'], label='Validation Loss', color='yellow', linestyle='-')
 
     # Plot Validation Accuracy
-    plt.plot(
-        history["epoch"],
-        history["val_acc"],
-        label="Validation Accuracy",
-        color="green",
-        linestyle="--",
-    )
+    plt.plot(history['epoch'], history['val_acc'], label='Validation Accuracy', color='green', linestyle='--')
 
     # Configure the plot
-    plt.xlabel("Epochs")  # X-axis as the recorded epochs
-    plt.ylabel("Value")  # Shared y-axis label
-    plt.title("Training Loss and Accuracy Over Recorded Epochs")
+    plt.xlabel('Epochs')  # X-axis as the recorded epochs
+    plt.ylabel('Value')  # Shared y-axis label
+    plt.title('MONK1 - Training Loss and Accuracy Over Recorded Epochs')
     plt.legend()
     plt.grid(True)
 
@@ -227,7 +159,7 @@ if __name__ == "__main__":
     plt.show()
 
     # Validation predictions
-    print("Predicting validation set")
+    print('Predicting validation set')
     monk1_validation_nn_predictions = nn1.predict(monk1_validation_X)
     customClassificationReport(monk1_validation_Y, monk1_validation_nn_predictions)
 
@@ -242,32 +174,22 @@ if __name__ == "__main__":
 
     for col in columns_to_encode:
         one_hot_encoded, mapping = one_hot_encode(monk1_test_data[col])
-        encoded_columns[col] = pd.DataFrame(
-            one_hot_encoded
-        )  # Assicurati che sia un DataFrame
+        encoded_columns[col] = pd.DataFrame(one_hot_encoded)  # Assicurati che sia un DataFrame
         category_mappings[col] = mapping
 
     # Concatenazione delle colonne codificate con la colonna target
     encoded_columns_df = pd.concat(encoded_columns.values(), axis=1)
-    one_hot_test_monk1 = pd.concat(
-        [monk1_test_data["target"], encoded_columns_df], axis=1
-    )
+    one_hot_test_monk1 = pd.concat([monk1_test_data['target'], encoded_columns_df], axis=1)
 
     # Verifica che tutte le colonne abbiano la stessa lunghezza
-    assert all(
-        encoded_columns_df[col].shape[0] == len(one_hot_test_monk1)
-        for col in encoded_columns_df.columns
-    ), "Le colonne codificate non hanno la stessa lunghezza!"
+    assert all(encoded_columns_df[col].shape[0] == len(one_hot_test_monk1) for col in encoded_columns_df.columns), \
+        "Le colonne codificate non hanno la stessa lunghezza!"
 
-    monk1_real_test_X, monk1_real_test_Y = splitToFeaturesAndTargetClassification(
-        one_hot_test_monk1
-    )
+    monk1_real_test_X, monk1_real_test_Y = splitToFeaturesAndTargetClassification(one_hot_test_monk1)
 
     # Conversione a numpy array
     try:
-        monk1_real_test_X = np.array(
-            monk1_real_test_X, dtype=np.float64
-        )  # Assicurati che siano numerici
+        monk1_real_test_X = np.array(monk1_real_test_X, dtype=np.float64)  # Assicurati che siano numerici
     except ValueError as e:
         print("Errore nella conversione dei dati di Features in array numpy:", e)
 

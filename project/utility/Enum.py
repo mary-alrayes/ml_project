@@ -15,3 +15,8 @@ class RegularizationType(Enum):
 class TaskType(Enum):
     REGRESSION = "regression"
     CLASSIFICATION = "classification"
+
+
+class RegressionMetrics(Enum):
+    MSE = "MSE"
+    MAE = "MAE"
