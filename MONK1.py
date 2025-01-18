@@ -11,7 +11,6 @@ from project.utility.utility import (
     customClassificationReport,
     removeId,
     preprocessClassificationData,
-    accuracy_score_custom_for_grid_search,
     splitToFeaturesAndTargetClassification,
 )
 
@@ -142,18 +141,16 @@ if __name__ == "__main__":
 
     # Initialize the Search class for grid search
     search = Search(
-        CustomNeuralNetwork,
-        param_grid,
-        accuracy_score_custom_for_grid_search,
+        model=CustomNeuralNetwork,
+        param_grid=param_grid,
         activation_type=ActivationType.SIGMOID,
         regularization_type=RegularizationType.L2,
-        task_type=TaskType.CLASSIFICATION,
     )
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
-    best_params, best_score = search.grid_search(
-        X, y, epoch=200, neurons=[3], output_size=1
+    best_params, best_score = search.grid_search_classification(
+        X, y, epoch=200, batchSize=10, neurons=[3], output_size=1
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 

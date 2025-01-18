@@ -136,30 +136,28 @@ if __name__ == "__main__":
     # Define the parameter grid
     param_grid = {
         "learning_rate": [x / 10 for x in range(1, 10)],
-        "momentum": [x / 100 for x in range(80, 90)],
+        "momentum": [x / 100 for x in range(70, 90)],
         "lambd": [0.0],
     }
 
     # Initialize the Search class for grid search
     search = Search(
-        CustomNeuralNetwork,
-        param_grid,
-        accuracy_score_custom_for_grid_search,
+        model=CustomNeuralNetwork,
+        param_grid=param_grid,
         activation_type=ActivationType.SIGMOID,
         regularization_type=RegularizationType.L2,
-        task_type=TaskType.CLASSIFICATION,
     )
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
-    best_params, best_score = search.grid_search(
-        X, y, epoch=200, neurons=[4], output_size=1
+    best_params, best_score = search.grid_search_classification(
+        X, y, epoch=100, batchSize=18, neurons=[4], output_size=1
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
     nn3 = CustomNeuralNetwork(
-        input_size=X.shape[2],
+        input_size=X.shape[1],
         hidden_layers=[4],
         output_size=1,
         activationType=ActivationType.SIGMOID,
@@ -172,7 +170,7 @@ if __name__ == "__main__":
 
     # Train the network
     history = nn3.fit(
-        X, y, monk3_validation_X, monk3_validation_Y, epochs=200, batch_size=6
+        X, y, monk3_validation_X, monk3_validation_Y, epochs=100, batch_size=18
     )
 
     # Plot a single graph with Loss and Training Accuracy
