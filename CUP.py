@@ -38,22 +38,22 @@ if __name__ == "__main__":
     print("test shape: \n", test_data.shape, "\n test: \n", test_data.head())
 
     train_X, train_Y, validation_X, validation_Y = preprocessRegrData(train_data, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
-    print(f"train_X\n {train_X.shape}, train_Y\n {train_Y.shape}")
-    print(f"validation_X\n {validation_X.shape}, validation_Y\n {validation_Y.shape}")
+    print("train_X\n: ", train_X.shape, "train_Y\n: ", train_Y.shape)
+    print("validation_X\n: ", validation_X.shape, "validation_Y\n:  ", validation_Y.shape)
 
     #reshape train_X, train_Y, validation_X  
     X = train_X
     y = train_Y.reshape(-1, 3)   
 
-    print(f"train X shape: {X.shape}")
-    print(f"train Y shape: {y.shape}")
+    print("train X shape: ", X.shape)
+    print("train Y shape: ", y.shape)
 
     # Define the parameter grid 
     param_grid = {
-        'learning_rate': [0.1, 0.01, 0.001,],  # Learning rate values
-        'momentum': [0.7, 0.8, 0.85, 0.9],              # Momentum values
-        'lambd': [0.01, 0.05, 0.1],              # Regularization lambda values
-        'hidden_layers': [[30, 40], [45, 23], [20, 20], [45, 30]]    # Number of neurons in the hidden layer
+        'learning_rate': [x/1000 for x in range(1, 11)],  # Learning rate values
+        'momentum': [x/100 for x in range(60, 100)],              # Momentum values
+        'lambd': [0.001] + [x/10 for x in range(1, 10)] + [x/100 for x in range(1, 10)],              # Regularization lambda values
+        'hidden_layers': [[x, y] for x in range(20, 31) for y in range(15, 20)],   # Number of neurons in the hidden layer
     }
 
     # Initialize the Search class for grid search
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search(X, y, epoch=200, output_size=3)
-    print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
+    print("Best Parameters:\n ", best_params, "Best Score: ", best_score)
 
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(input_size=X.shape[1],
@@ -73,11 +73,12 @@ if __name__ == "__main__":
                               learning_rate=best_params['learning_rate'],
                               momentum=best_params['momentum'],
                               lambd=best_params['lambd'],
+                              batch_size=best_params['batch_size'],
                               regularizationType=RegularizationType.L2,
-                              task_type=TaskType.REGRESSION
+                              task_type=TaskType.REGRESSION,
                               )
     # Train the network
-    history = nn1.fit(X, y, epochs=200, batch_size=32)
+    history = nn1.fit(X, y, X_val=validation_X, y_val=validation_Y, epochs=200)
 
     # Plot a single graph with Loss and Training Accuracy
     plt.figure()
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     plt.plot(history['epoch'], history['train_loss'], label='Training Loss', color='blue', linestyle='-')
 
     # Plot Training Accuracy
-    plt.plot(history['epoch'], history['train_r2'], label='Training R^2', color='orange', linestyle='--')
+    #plt.plot(history['epoch'], history['train_r2'], label='Training R^2', color='orange', linestyle='--')
 
     # Configure the plot
     plt.xlabel('Epochs')  # X-axis as the recorded epochs

@@ -64,39 +64,36 @@ class Search:
                 for momentum in self.param_grid["momentum"]:
                     for lambd in self.param_grid["lambd"]:
                         for hidden_layers in self.param_grid["hidden_layers"]:
-                            for batch_size in self.param_grid["batch_size"]:
-                                # Initialize a new model instance with current parameters
-                                model = self.model(
-                                    input_size=X.shape[1],
-                                    hidden_layers=hidden_layers,
-                                    output_size=output_size,
-                                    activationType=self.activation_type,
-                                    learning_rate=learning_rate,
-                                    momentum=momentum,
-                                    lambd=lambd,
-                                    regularizationType=self.regularization_type,
-                                    task_type=self.task_type,
-                                    batch_size=batch_size
-                                )
-                                # Train the model
-                                mean_score, scores = custom_cross_validation_regr(model, X, y, epoch=epoch)
-                                score = mean_score
-                                # Log the parameters and score for debugging
-                                print(
-                                    f"Learning Rate: {learning_rate}, Momentum: {momentum}, Lambda: {lambd}, Hidden Layers: {hidden_layers}, Batch size: {batch_size}, Score: {mean_score}"
-                                )
-                                print("-----------------------------------------------------")
+                            # Initialize a new model instance with current parameters
+                            model = self.model(
+                                input_size=X.shape[1],
+                                hidden_layers=hidden_layers,
+                                output_size=output_size,
+                                activationType=self.activation_type,
+                                learning_rate=learning_rate,
+                                momentum=momentum,
+                                lambd=lambd,
+                                regularizationType=self.regularization_type,
+                                task_type=self.task_type,
+                            )
+                            # Train the model
+                            mean_score, scores = custom_cross_validation_regr(model, X, y, X_val=X_val, y_val=y_val, epoch=epoch)
+                            score = mean_score
+                            # Log the parameters and score for debugging
+                            print(
+                                f"Learning Rate: {learning_rate}, Momentum: {momentum}, Lambda: {lambd}, Hidden Layers: {hidden_layers}, Score: {mean_score}"
+                            )
+                            print("-----------------------------------------------------")
 
-                                # Update the best score and parameters if a better score is found
-                                if score < best_score_regr:
-                                    best_score_regr = score
-                                    best_params = {
-                                        "learning_rate": learning_rate,
-                                        "momentum": momentum,
-                                        "lambd": lambd,
-                                        "hidden_layers": hidden_layers,
-                                        "batch_size": batch_size
-                                    }
+                            # Update the best score and parameters if a better score is found
+                            if score < best_score_regr:
+                                best_score_regr = score
+                                best_params = {
+                                    "learning_rate": learning_rate,
+                                    "momentum": momentum,
+                                    "lambd": lambd,
+                                    "hidden_layers": hidden_layers,
+                                }
             best_score = best_score_regr
 
         # Ensure best_params and best_score are consistent

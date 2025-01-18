@@ -6,7 +6,7 @@ import numpy as np
 class CustomNeuralNetwork:
 
     def __init__(self, input_size, hidden_layers, output_size, activationType, regularizationType, learning_rate,
-                 momentum, lambd, task_type):
+                 momentum, lambd, task_type, nesterov=False):
         """
         Initialize the neural network.
         input_size: Number of input features.
@@ -19,10 +19,10 @@ class CustomNeuralNetwork:
         self.activationType = activationType
         self.regularizationType = regularizationType
         self.task_type = task_type
-
+        self.nesterov = nesterov
         self.learning_rate = learning_rate
         self.momentum = momentum
-        self.regularization = lambd
+        self.lambd = lambd
 
         # list containing the number of neurons in each layer
         self.layers = [input_size] + hidden_layers + [output_size]
@@ -175,7 +175,16 @@ class CustomNeuralNetwork:
             bias_gradient /= X.shape[0]
 
             # Apply regularization (weight decay)
-            weight_gradient += self.regularization * self.weights[i]
+            weight_gradient += self.lambd * self.weights[i]
+            
+            if self.nesterov:
+                # interim weights with nesterov momentum
+                interim_weights = self.weights[i] + self.momentum * self.previous_updates_w[i]
+                interim_biases = self.biases[i] + self.momentum * self.previous_updates_b[i]
+
+                #recompute gradient at the interim point
+                weight_gradient += self.lambd * interim_weights
+                bias_gradient += self.lambd * interim_biases
 
             # Apply momentum and calculate updates
             weight_update = self.learning_rate * weight_gradient + self.momentum * self.previous_updates_w[i]
@@ -230,10 +239,10 @@ class CustomNeuralNetwork:
                                           -1] - y_batch) ** 2)
 
                 if self.regularizationType == RegularizationType.L1:
-                    batch_loss += self.regularization * self.regularization_l1()
+                    batch_loss += self.lambd * self.regularization_l1()
 
                 else:
-                    batch_loss += self.regularization * self.regularization_l2()
+                    batch_loss += self.lambd * self.regularization_l2()
 
                 epoch_loss += batch_loss * len(X_batch)  # Weighted sum of batch losses
 
@@ -243,10 +252,10 @@ class CustomNeuralNetwork:
             if X_val is not None and y_val is not None:
                 predicted_val = self.predict(X_val)
                 if self.regularizationType == RegularizationType.L1:
-                    val_loss = np.mean((predicted_val - y_val) ** 2) + self.regularization * self.regularization_l1()
+                    val_loss = np.mean((predicted_val - y_val) ** 2) + self.lambd * self.regularization_l1()
 
                 else:
-                    val_loss = np.mean((predicted_val - y_val) ** 2) + self.regularization * self.regularization_l2()
+                    val_loss = np.mean((predicted_val - y_val) ** 2) + self.lambd * self.regularization_l2()
 
             # Calculate accuracy
             if self.task_type == TaskType.CLASSIFICATION:
@@ -262,19 +271,17 @@ class CustomNeuralNetwork:
                     history['val_loss'].append(val_loss)
             else:
                 train_predictions = self.predict(X)
-                val_predictions = self.predict(X_val)
                 train_r2 = r2_score(train_predictions, y)  # R^2 Score
-
                 history['train_r2'].append(train_r2)
 
                 if X_val is not None and y_val is not None:
+                    val_predictions = self.predict(X_val)
                     val_r2 = r2_score(val_predictions, y)  # R^2 Score
                     history['val_r2'].append(val_r2)
                     history['val_loss'].append(val_loss)
 
             # Store metrics
             history['train_loss'].append(epoch_loss)
-
             history['epoch'].append(epoch)
 
             # Print progress

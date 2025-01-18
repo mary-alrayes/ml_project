@@ -162,7 +162,7 @@ def accuracy_score_custom(nn_model, X, y):
 
 # ----------------------------REGRESSION-----------------------------------
 
-def custom_cross_validation_regr(model, X, y, epoch=None, num_folds=5, metric='mse'):
+def custom_cross_validation_regr(model, X, y, X_val, y_val, epoch=None, num_folds=5, metric='mse'):
     """
     Perform k-fold cross-validation for a regression model.
 
@@ -197,9 +197,9 @@ def custom_cross_validation_regr(model, X, y, epoch=None, num_folds=5, metric='m
 
         # Train the model
         if epoch is not None:
-            model.fit(X_train, y_train.reshape(-1, 3), epochs=epoch, batch_size=10)
+            model.fit(X_train, y_train.reshape(-1, 3), X_val, y_val, epochs=epoch, batch_size=-1)
         else:
-            model.fit(X_train, y_train.reshape(-1, 3))
+            model.fit(X_train, y_train.reshape(-1, 3), X_val, y_val)
 
             # Evaluate the model on the test set
         predictions = model.predict(X_test)

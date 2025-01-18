@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-
+from sklearn.model_selection import train_test_split
 from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
 from sklearn.utils import resample
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     param_grid = {
         'learning_rate': [x/100 for x in range(1, 10)],
         'momentum': [x/100 for x in range(90, 100)],
-        'lambd': [x/1000000 for x in range(1, 10)]
+        'lambd': [x/1000000 for x in range(1, 10)],
     }
 
     # Initialize the Search class for grid search
@@ -115,7 +115,9 @@ if __name__ == "__main__":
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
-    best_params, best_score = search.grid_search(X, y, epoch=150, neurons=[4], output_size=1)
+    best_params, best_score = search.grid_search(X, y, epoch=300, neurons=[3], output_size=1)
+    '''X_train, X_val, y_train, y_val = train_test_split(monk1_train_X, monk1_train_Y, test_size=0.2, random_state=42)
+    best_params, best_score = search.holdoutValidation(X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1)'''
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
