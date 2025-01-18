@@ -136,8 +136,8 @@ if __name__ == "__main__":
     # Define the parameter grid
     param_grid = {
         "learning_rate": [x / 10 for x in range(1, 10)],
-        "momentum": [x / 100 for x in range(70, 90)],
-        "lambd": [0.0],
+        "momentum": [x / 100 for x in range(80, 90)],
+        "lambd": [x/100000000 for x in range(1, 10)],
     }
 
     # Initialize the Search class for grid search
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search_classification(
-        X, y, epoch=100, batchSize=18, neurons=[4], output_size=1
+        X, y, epoch=100, batchSize=10, neurons=[4], output_size=1
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     # Train the network
     history = nn3.fit(
-        X, y, monk3_validation_X, monk3_validation_Y, epochs=100, batch_size=18
+        X, y, monk3_validation_X, monk3_validation_Y, epochs=100, batch_size=10
     )
 
     # Plot a single graph with Loss and Training Accuracy
