@@ -2,14 +2,28 @@ import random
 from itertools import product
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
-from project.utility.utility import custom_cross_validation_class, custom_cross_validation_regr
+from project.utility.utility import (
+    custom_cross_validation_classification,
+    custom_cross_validation_regression,
+)
 from project.utility.Enum import TaskType
+
+"""
+Class to perform manual grid search and random search
+"""
 
 
 class Search:
-    """Class to perform manual grid search and random search"""
 
-    def __init__(self, model, param_grid, scoring_function, activation_type, regularization_type, task_type):
+    def __init__(
+        self,
+        model,
+        param_grid,
+        scoring_function,
+        activation_type,
+        regularization_type,
+        task_type,
+    ):
         self.model = model
         self.param_grid = param_grid
         self.scoring_function = scoring_function
@@ -17,7 +31,16 @@ class Search:
         self.regularization_type = regularization_type
         self.task_type = task_type
 
-    def grid_search(self, X, y, epoch=100, neurons=[3], output_size=1, X_val=None, y_val=None):
+    def grid_search(
+        self,
+        X,
+        y,
+        epoch=100,
+        neurons=[3],
+        output_size=1,
+        X_val=None,
+        y_val=None,
+    ):
 
         best_score_class = -float("inf")
         best_score_regr = float("inf")
@@ -38,11 +61,19 @@ class Search:
                             momentum=momentum,
                             lambd=lambd,
                             regularizationType=self.regularization_type,
-                            task_type=self.task_type
+                            task_type=self.task_type,
                         )
                         # Perform cross-validation to get the mean accuracy
-                        mean_accuracy, accuracies = custom_cross_validation_class(model, X, y, X_val=X_val, y_val=y_val,
-                                                                                  epoch=epoch)
+                        mean_accuracy, accuracies = (
+                            custom_cross_validation_classification(
+                                model,
+                                X,
+                                y,
+                                X_val=X_val,
+                                y_val=y_val,
+                                epoch=epoch,
+                            )
+                        )
                         score = mean_accuracy
                         # Log the parameters and score for debugging
                         print(
@@ -77,13 +108,17 @@ class Search:
                                 task_type=self.task_type,
                             )
                             # Train the model
-                            mean_score, scores = custom_cross_validation_regr(model, X, y, X_val=X_val, y_val=y_val, epoch=epoch)
+                            mean_score, scores = custom_cross_validation_regression(
+                                model, X, y, X_val=X_val, y_val=y_val, epoch=epoch
+                            )
                             score = mean_score
                             # Log the parameters and score for debugging
                             print(
                                 f"Learning Rate: {learning_rate}, Momentum: {momentum}, Lambda: {lambd}, Hidden Layers: {hidden_layers}, Score: {mean_score}"
                             )
-                            print("-----------------------------------------------------")
+                            print(
+                                "-----------------------------------------------------"
+                            )
 
                             # Update the best score and parameters if a better score is found
                             if score < best_score_regr:
@@ -104,8 +139,10 @@ class Search:
 
         return best_params, best_score
 
-    def holdoutValidation(self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1):
-        best_score = -float('inf')
+    def holdoutValidation(
+        self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1
+    ):
+        best_score = -float("inf")
         best_params = None
 
         for learning_rate in self.param_grid["learning_rate"]:
@@ -121,14 +158,14 @@ class Search:
                         momentum=momentum,
                         lambd=lambd,
                         regularizationType=self.regularization_type,
-                        task_type=self.task_type
+                        task_type=self.task_type,
                     )
 
                     model.fit(X_train, y_train, epochs=epoch, batch_size=8)
 
                     predictions = model.predict(X_val)
                     # Convert probabilities to binary predictions if necessary
-                    #predictions = (predictions > 0.5).astype(int)
+                    # predictions = (predictions > 0.5).astype(int)
                     score = np.mean(predictions.flatten() == y_val.flatten())
                     # Log the parameters and score for debugging
                     print(
@@ -147,7 +184,9 @@ class Search:
 
     import random
 
-    def random_grid_search(self, X, y, n_iter=10, epoch=100, neurons=[1], output_size=1):
+    def random_grid_search(
+        self, X, y, n_iter=10, epoch=100, neurons=[1], output_size=1
+    ):
         """Perform random grid search, including patience as a parameter"""
 
         best_score = -float("inf")
@@ -179,11 +218,15 @@ class Search:
                         momentum=momentum,
                         lambd=lambd,
                         regularizationType=self.regularization_type,
-                        task_type=self.task_type
+                        task_type=self.task_type,
                     )
                     if self.task_type == TaskType.CLASSIFICATION:
                         # Train the model with cross validation
-                        mean_accuracy, accuracies = custom_cross_validation_class(model, X, y, epoch=epoch)
+                        mean_accuracy, accuracies = (
+                            custom_cross_validation_classification(
+                                model, X, y, epoch=epoch
+                            )
+                        )
                         score = mean_accuracy
                         print(
                             f"Learning Rate: {learning_rate}, Momentum: {momentum}, Lambda: {lambd}, Score: {score}"
@@ -191,7 +234,9 @@ class Search:
                         print("-----------------------------------------------------")
                     else:
                         # Train the model
-                        mean_score, scores = custom_cross_validation_regr(model, X, y, epoch=epoch)
+                        mean_score, scores = custom_cross_validation_regression(
+                            model, X, y, epoch=epoch
+                        )
                         score = mean_score
                         # Log the parameters and score for debugging
                         print(
@@ -205,7 +250,6 @@ class Search:
                             "learning_rate": learning_rate,
                             "momentum": momentum,
                             "lambd": lambd,
-
                         }
             # Ensure best_params and best_score are consistent
             if best_params is not None:
