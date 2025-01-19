@@ -8,6 +8,7 @@ from sklearn.model_selection import (
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+from sklearn.utils import resample
 from project.utility.Enum import RegressionMetrics, TaskType
 from sklearn.metrics import (
     confusion_matrix,
@@ -29,6 +30,30 @@ def removeId(data):
 
 
 # ----------------------------CLASSIFICATION-----------------------------------
+
+
+# function to balance data
+def balanceData(data):
+    # Separate majority and minority classes
+    majority_class = data[data["target"] == 1]
+    minority_class = data[data["target"] == 0]
+
+    # Oversample the minority class to match the majority class size
+    minority_class = resample(
+        minority_class,
+        replace=True,  # Sample with replacement
+        n_samples=len(majority_class),  # Match majority class size
+        random_state=62,
+    )  # For reproducibility
+
+    # Combine the oversampled minority class with the majority class
+    data = pd.concat([majority_class, minority_class])
+
+    # Shuffle the balanced dataset
+    data = data.sample(frac=1, random_state=62).reset_index(drop=True)
+
+    # Print the balanced dataset for verification
+    return data
 
 
 # function to split the data to (training and validation) while preserving the proportion of a specific target in the

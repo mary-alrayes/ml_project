@@ -7,6 +7,7 @@ from sklearn.utils import resample
 from project.utility.Enum import RegularizationType, ActivationType, TaskType
 from project.utility.Search import Search
 from project.utility.utility import (
+    balanceData,
     one_hot_encode,
     customClassificationReport,
     removeId,
@@ -72,32 +73,8 @@ if __name__ == "__main__":
     print("Test data")
     print(monk2_test_data.head())
 
-    # Separate majority and minority classes
-    majority_class = monk2_train_data[monk2_train_data["target"] == 1]
-    minority_class = monk2_train_data[monk2_train_data["target"] == 0]
-
-    # Oversample the minority class to match the majority class size
-    minority_class = resample(
-        minority_class,
-        replace=True,  # Sample with replacement
-        n_samples=len(majority_class),  # Match majority class size
-        random_state=62,
-    )  # For reproducibility
-
-    # Combine the oversampled minority class with the majority class
-    monk2_train_data = pd.concat([majority_class, minority_class])
-
-    # Shuffle the balanced dataset
-    monk2_train_data = monk2_train_data.sample(frac=1, random_state=62).reset_index(
-        drop=True
-    )
-
-    # Print the balanced dataset for verification
-    print("Balancing completed:")
-    print(monk2_train_data["target"].value_counts())
-
-    # The balanced dataset is now ready for training
-    # Use monk2_train_data for training your model
+    # balancing data cause the target column is not balanced
+    monk2_train_data = balanceData(monk2_train_data)
 
     # --------------------------------------------------MONK2-----------------------------------------------------------
 

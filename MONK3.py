@@ -7,6 +7,7 @@ from sklearn.utils import resample
 from project.utility.Enum import RegularizationType, ActivationType, TaskType
 from project.utility.Search import Search
 from project.utility.utility import (
+    balanceData,
     one_hot_encode,
     customClassificationReport,
     removeId,
@@ -72,32 +73,8 @@ if __name__ == "__main__":
     print("Test data")
     print(monk3_test_data.head())
 
-    # Separate majority and minority classes
-    majority_class = monk3_train_data[monk3_train_data["target"] == 1]
-    minority_class = monk3_train_data[monk3_train_data["target"] == 0]
-
-    # Oversample the minority class to match the majority class size
-    minority_class = resample(
-        minority_class,
-        replace=True,  # Sample with replacement
-        n_samples=len(majority_class),  # Match majority class size
-        random_state=63,
-    )  # For reproducibility
-
-    # Combine the oversampled minority class with the majority class
-    monk3_train_data = pd.concat([majority_class, minority_class])
-
-    # Shuffle the balanced dataset
-    monk3_train_data = monk3_train_data.sample(frac=1, random_state=62).reset_index(
-        drop=True
-    )
-
-    # Print the balanced dataset for verification
-    print("Balancing completed:")
-    print(monk3_train_data["target"].value_counts())
-
-    # The balanced dataset is now ready for training
-    # Use monk3_train_data for training your model
+    # balancing data cause the target column is not balanced
+    monk3_train_data = balanceData(monk3_train_data)
 
     # --------------------------------------------------MONK3-----------------------------------------------------------
 
@@ -137,7 +114,7 @@ if __name__ == "__main__":
     param_grid = {
         "learning_rate": [x / 10 for x in range(1, 10)],
         "momentum": [x / 100 for x in range(80, 90)],
-        "lambd": [x/100000000 for x in range(1, 10)],
+        "lambd": [x / 100000000 for x in range(1, 10)],
     }
 
     # Initialize the Search class for grid search
@@ -151,7 +128,7 @@ if __name__ == "__main__":
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search_classification(
-        X, y, epoch=100, batchSize=10, neurons=[4], output_size=1
+        X, y, epoch=100, batchSize=16, neurons=[4], output_size=1
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
@@ -170,7 +147,7 @@ if __name__ == "__main__":
 
     # Train the network
     history = nn3.fit(
-        X, y, monk3_validation_X, monk3_validation_Y, epochs=100, batch_size=10
+        X, y, monk3_validation_X, monk3_validation_Y, epochs=100, batch_size=16
     )
 
     # Plot a single graph with Loss and Training Accuracy
@@ -215,7 +192,7 @@ if __name__ == "__main__":
     # Configure the plot
     plt.xlabel("Epochs")  # X-axis as the recorded epochs
     plt.ylabel("Value")  # Shared y-axis label
-    plt.title("MONK2 - Training Loss and Accuracy Over Recorded Epochs")
+    plt.title("MONK3 - Training Loss and Accuracy Over Recorded Epochs")
     plt.legend()
     plt.grid(True)
 
