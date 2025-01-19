@@ -15,46 +15,97 @@ Class to perform manual grid search and random search
 
 class Search:
 
-    def __init__(
-        self,
-        model,
-        param_grid,
-        scoring_function,
-        activation_type,
-        regularization_type,
-        task_type,
-    ):
+    def __init__(self, model, param_grid, activation_type, regularization_type):
         self.model = model
         self.param_grid = param_grid
-        self.scoring_function = scoring_function
         self.activation_type = activation_type
         self.regularization_type = regularization_type
-        self.task_type = task_type
 
-    def grid_search(
+    ## function to perform grid search for classification
+
+    def grid_search_classification(
         self,
         X,
         y,
         epoch=100,
+        batchSize=16,
         neurons=[3],
         output_size=1,
-        X_val=None,
-        y_val=None,
     ):
 
         best_score_class = -float("inf")
+        best_params = None
+
+        # Iterate over all possible combinations of hyperparameters
+        for learning_rate in self.param_grid["learning_rate"]:
+            for momentum in self.param_grid["momentum"]:
+                for lambd in self.param_grid["lambd"]:
+                    # Initialize a new model instance with current parameters
+                    model = self.model(
+                        input_size=X.shape[1],
+                        hidden_layers=neurons,
+                        output_size=output_size,
+                        activationType=self.activation_type,
+                        learning_rate=learning_rate,
+                        momentum=momentum,
+                        lambd=lambd,
+                        regularizationType=self.regularization_type,
+                        task_type=TaskType.CLASSIFICATION,
+                    )
+                    # Perform cross-validation to get the mean accuracy
+                    mean_accuracy, accuracies = custom_cross_validation_classification(
+                        model=model,
+                        X_tr=X,
+                        y_tr=y,
+                        epoch=epoch,
+                        batch_size=batchSize,
+                    )
+                    score = mean_accuracy
+                    # Log the parameters and score for debugging
+                    print(
+                        f"Grid Search: Learning Rate={learning_rate}, Momentum={momentum}, Lambda={lambd}, Score={mean_accuracy:.4f}"
+                    )
+                    print("-----------------------------------------------------")
+                    # Update the best score and parameters if a better score is found
+                    if score > best_score_class:
+                        best_score_class = score
+                        best_params = {
+                            "learning_rate": learning_rate,
+                            "momentum": momentum,
+                            "lambd": lambd,
+                        }
+        best_score = best_score_class
+
+        # Ensure best_params and best_score are consistent
+        if best_params is not None:
+            print(f"\nBest Parameters: {best_params}, Best Score: {best_score:.4f}")
+        else:
+            print("\nNo valid parameters found during grid search.")
+
+        return best_params, best_score
+
+    ## function to perform grid search for regression
+    def grid_search_regression(
+        self,
+        X,
+        y,
+        epoch=100,
+        batchSize=16,
+        neurons=[3],
+        output_size=1,
+    ):
         best_score_regr = float("inf")
         best_params = None
 
-        if self.task_type == TaskType.CLASSIFICATION:
-            # Iterate over all possible combinations of hyperparameters
-            for learning_rate in self.param_grid["learning_rate"]:
-                for momentum in self.param_grid["momentum"]:
-                    for lambd in self.param_grid["lambd"]:
+        # Iterate over all possible combinations of hyperparameters
+        for learning_rate in self.param_grid["learning_rate"]:
+            for momentum in self.param_grid["momentum"]:
+                for lambd in self.param_grid["lambd"]:
+                    for hidden_layers in self.param_grid["hidden_layers"]:
                         # Initialize a new model instance with current parameters
                         model = self.model(
                             input_size=X.shape[1],
-                            hidden_layers=neurons,
+                            hidden_layers=hidden_layers,
                             output_size=output_size,
                             activationType=self.activation_type,
                             learning_rate=learning_rate,
@@ -63,74 +114,31 @@ class Search:
                             regularizationType=self.regularization_type,
                             task_type=self.task_type,
                         )
-                        # Perform cross-validation to get the mean accuracy
-                        mean_accuracy, accuracies = (
-                            custom_cross_validation_classification(
-                                model,
-                                X,
-                                y,
-                                X_val=X_val,
-                                y_val=y_val,
-                                epoch=epoch,
-                            )
+                        # Train the model
+                        mean_score, scores = custom_cross_validation_regression(
+                            model=model,
+                            X_train=X,
+                            y_train=y,
+                            batch_size=batchSize,
+                            epoch=epoch,
                         )
-                        score = mean_accuracy
+                        score = mean_score
                         # Log the parameters and score for debugging
                         print(
-                            f"Testing: Learning Rate={learning_rate}, Momentum={momentum}, Lambda={lambd}, Score={mean_accuracy:.4f}"
+                            f"Grid Search: Learning Rate: {learning_rate}, Momentum: {momentum}, Lambda: {lambd}, Hidden Layers: {hidden_layers}, Score: {mean_score}"
                         )
                         print("-----------------------------------------------------")
+
                         # Update the best score and parameters if a better score is found
-                        if score > best_score_class:
-                            best_score_class = score
+                        if score < best_score_regr:
+                            best_score_regr = score
                             best_params = {
                                 "learning_rate": learning_rate,
                                 "momentum": momentum,
                                 "lambd": lambd,
+                                "hidden_layers": hidden_layers,
                             }
-            best_score = best_score_class
-        else:
-            # Iterate over all possible combinations of hyperparameters
-            for learning_rate in self.param_grid["learning_rate"]:
-                for momentum in self.param_grid["momentum"]:
-                    for lambd in self.param_grid["lambd"]:
-                        for hidden_layers in self.param_grid["hidden_layers"]:
-                            # Initialize a new model instance with current parameters
-                            model = self.model(
-                                input_size=X.shape[1],
-                                hidden_layers=hidden_layers,
-                                output_size=output_size,
-                                activationType=self.activation_type,
-                                learning_rate=learning_rate,
-                                momentum=momentum,
-                                lambd=lambd,
-                                regularizationType=self.regularization_type,
-                                task_type=self.task_type,
-                            )
-                            # Train the model
-                            mean_score, scores = custom_cross_validation_regression(
-                                model, X, y, X_val=X_val, y_val=y_val, epoch=epoch
-                            )
-                            score = mean_score
-                            # Log the parameters and score for debugging
-                            print(
-                                f"Learning Rate: {learning_rate}, Momentum: {momentum}, Lambda: {lambd}, Hidden Layers: {hidden_layers}, Score: {mean_score}"
-                            )
-                            print(
-                                "-----------------------------------------------------"
-                            )
-
-                            # Update the best score and parameters if a better score is found
-                            if score < best_score_regr:
-                                best_score_regr = score
-                                best_params = {
-                                    "learning_rate": learning_rate,
-                                    "momentum": momentum,
-                                    "lambd": lambd,
-                                    "hidden_layers": hidden_layers,
-                                }
-            best_score = best_score_regr
-
+        best_score = best_score_regr
         # Ensure best_params and best_score are consistent
         if best_params is not None:
             print(f"\nBest Parameters: {best_params}, Best Score: {best_score:.4f}")

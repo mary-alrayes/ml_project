@@ -98,6 +98,7 @@ def preprocessClassificationData(data):
     one_hot_encoded_data = pd.concat(
         [data["target"]] + [encoded_columns[col] for col in columns_to_encode], axis=1
     )
+    print("one hot encoded data: ", one_hot_encoded_data.shape)
 
     # split the data to training and validation
     split_train_set, split_validation_set = (
@@ -167,10 +168,8 @@ def accuracy_score_custom_for_grid_search(nn_model, X, y):
 ## function to perform cross validation for classification
 def custom_cross_validation_classification(
     model,
-    X_train,
-    y_train,
-    X_val,
-    y_val,
+    X_tr,
+    y_tr,
     epoch,
     batch_size,
     num_folds=5,
@@ -178,14 +177,11 @@ def custom_cross_validation_classification(
     """
     Perform stratified k-fold cross-validation
     we are performing cross validation (k-fold) on (X_train, y_train) set.
-    (X_val,y_val) is the set sent to the fit function while training each fold.
 
     Parameters:
     - model: model object.
-    - X_train: data.
-    - y_train: target.
-    - x_val:  data of validation set to pass for training in order to plot the validation curve
-    - y_val:  target of validation set to pass for training in order to plot the validation curve
+    - X_tr: data.
+    - y_tr: target.
     - epoch: number of epochs for the training
     - batch_size: the size of the batch size. Default is 5.
     - num_folds: Number of cross-validation folds.
@@ -196,7 +192,7 @@ def custom_cross_validation_classification(
 
     """
 
-    X_train, y_train = np.array(X_train), np.array(y_train)
+    X_tr, y_tr = np.array(X_tr), np.array(y_tr)
 
     # Initialize stratified k-fold
     skf = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=42)
@@ -204,12 +200,12 @@ def custom_cross_validation_classification(
     # an array to store the accuracies for each fold
     fold_accuracies = []
 
-    for fold, (train_idx, test_idx) in enumerate(skf.split(X_train, y_train)):
+    for fold, (train_idx, test_idx) in enumerate(skf.split(X_tr, y_tr)):
         print(f"Fold {fold + 1}/{num_folds}")
 
         # Split (X_train,y_train) data to training and testing for each fold
-        X_train, X_test = X_train[train_idx], X_train[test_idx]
-        y_train, y_test = y_train[train_idx], y_train[test_idx]
+        X_train, X_test = X_tr[train_idx], X_tr[test_idx]
+        y_train, y_test = y_tr[train_idx], y_tr[test_idx]
         print("train size: ", len(X_train))
         print("test size: ", len(X_test))
 
@@ -217,8 +213,6 @@ def custom_cross_validation_classification(
         model.fit(
             X_train,
             y_train.reshape(-1, 1),
-            X_val,  # passing (X_val,y_val) for the model to evaluate the model after every epoch
-            y_val,
             epochs=epoch,
             batch_size=batch_size,
         )
@@ -452,26 +446,23 @@ def customRegressionReport(trueValues, predictedValues, target_names):
         plt.show()
 
 
+### function to perform cross validation for regression
 def custom_cross_validation_regression(
     model,
-    X_train,
-    y_train,
-    X_val,
-    y_val,
+    X_tr,
+    y_tr,
     epoch,
     batch_size,
     num_folds=5,
-    metric=RegressionMetrics.mse,
+    metric=RegressionMetrics.MSE,
 ):
     """
     Perform k-fold cross-validation for a regression model.
 
     Parameters:
     - model: model object.
-    - X_train: data.
-    - y_train: target.
-    - x_val:  data of validation set to pass for training in order to plot the validation curve
-    - y_val:  target of validation set to pass for training in order to plot the validation curve
+    - X_tr: data.
+    - y_tr: target.
     - epoch: number of epochs for the training
     - batch_size: the size of the batch size
     - num_folds: Number of cross-validation folds. Default is 5.
@@ -495,8 +486,8 @@ def custom_cross_validation_regression(
         print(f"Fold {fold + 1}/{num_folds}")
 
         # Split (X_train,y_train) data to training and testing for each fold
-        X_train, X_test = X_train[train_idx], X_train[test_idx]
-        y_train, y_test = y_train[train_idx], y_train[test_idx]
+        X_train, X_test = X_tr[train_idx], X_tr[test_idx]
+        y_train, y_test = y_tr[train_idx], y_tr[test_idx]
         print("train size: ", len(X_train))
         print("test size: ", len(X_test))
 
@@ -504,8 +495,6 @@ def custom_cross_validation_regression(
         model.fit(
             X_train,
             y_train.reshape(-1, 1),
-            X_val,  # passing (X_val,y_val) for the model to evaluate the model after every epoch
-            y_val,
             epochs=epoch,
             batch_size=batch_size,
         )
@@ -532,7 +521,10 @@ def custom_cross_validation_regression(
 
 
 def save_predictions_to_csv(
-    predictions, validation_data, target_columns, output_filename="predictions.csv"
+    predictions,
+    validation_data,
+    target_columns,
+    output_filename="predictions.csv",
 ):
     """
     Saves the denormalized predictions along with the original input data to a CSV file.
