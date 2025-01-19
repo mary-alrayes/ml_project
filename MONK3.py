@@ -77,6 +77,8 @@ if __name__ == "__main__":
     monk3_train_data = balanceData(monk3_train_data)
 
     # --------------------------------------------------MONK3-----------------------------------------------------------
+    print("-------------------------------------")
+    print("\nReal Testing\n")
 
     # reshape train_X, train_Y, validation_X
     monk3_train_X, monk3_train_Y, monk3_validation_X, monk3_validation_Y = (
@@ -112,11 +114,11 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [x / 10 for x in range(1, 10)],
+        "learning_rate": [0.1 / (10**i) for i in range(10)],
         "momentum": [x / 100 for x in range(80, 90)],
         "lambd": [x / 100000000 for x in range(1, 10)],
     }
-
+    # Best Parameters: {'learning_rate': 0.1, 'momentum': 0.8, 'lambd': 1e-08},
     # Initialize the Search class for grid search
     search = Search(
         model=CustomNeuralNetwork,

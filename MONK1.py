@@ -14,6 +14,7 @@ from project.utility.utility import (
     splitToFeaturesAndTargetClassification,
 )
 
+
 if __name__ == "__main__":
     monk1_train = "monk/monks-1.train"
     monk1_test = "monk/monks-1.test"
@@ -107,10 +108,12 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [x / 10 for x in range(1, 10)],
+        "learning_rate": [0.1 / (10**i) for i in range(10)],
         "momentum": [x / 100 for x in range(80, 90)],
         "lambd": [0.0],
     }
+    # best params
+    # {'learning_rate': 0.1, 'momentum': 0.8, 'lambd': 0.0}, Best Score: 1.0000
 
     # Initialize the Search class for grid search
     search = Search(
@@ -123,7 +126,7 @@ if __name__ == "__main__":
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search_classification(
-        X, y, epoch=200, batchSize=10, neurons=[3], output_size=1
+        X, y, epoch=200, batchSize=5, neurons=[3], output_size=1
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
@@ -142,7 +145,7 @@ if __name__ == "__main__":
 
     # Train the network
     history = nn1.fit(
-        X, y, monk1_validation_X, monk1_validation_Y, epochs=200, batch_size=10
+        X, y, monk1_validation_X, monk1_validation_Y, epochs=200, batch_size=5
     )
 
     # Plot a single graph with Loss and Training Accuracy
@@ -196,10 +199,13 @@ if __name__ == "__main__":
 
     # Validation predictions
     print("Predicting validation set")
+    plt.figure()
     monk1_validation_nn_predictions = nn1.predict(monk1_validation_X)
     customClassificationReport(monk1_validation_Y, monk1_validation_nn_predictions)
 
     # -------------------------------------------------TEST------------------------------------------------------------
+    print("Real Testing")
+
     # Rimuovi l'ID dal dataset
     monk1_test_data = removeId(monk1_test_data)
 
@@ -248,5 +254,6 @@ if __name__ == "__main__":
     print(f"Train X shape: {monk1_real_test_X.shape}")
     print(f"Train Y shape: {monk1_real_test_Y.shape}")
 
+    plt.figure()
     monk1_real_test_predictions_nn = nn1.predict(monk1_real_test_X)
     customClassificationReport(monk1_real_test_Y, monk1_real_test_predictions_nn)

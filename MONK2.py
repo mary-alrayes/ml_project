@@ -112,10 +112,11 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [x / 10 for x in range(1, 10)],
+        "learning_rate": [0.1 / (10**i) for i in range(10)],
         "momentum": [x / 100 for x in range(80, 90)],
         "lambd": [0.0],
     }
+    # Best Parameters: {'learning_rate': 0.1, 'momentum': 0.8, 'lambd': 0.0}, Best Score: 1.0000
 
     # Initialize the Search class for grid search
     search = Search(
@@ -205,6 +206,10 @@ if __name__ == "__main__":
     customClassificationReport(monk2_validation_Y, monk2_validation_nn_predictions)
 
     # -------------------------------------------------TEST------------------------------------------------------------
+
+    print("-------------------------------------")
+    print("\nReal Testing\n")
+
     # Rimuovi l'ID dal dataset
     monk2_test_data = removeId(monk2_test_data)
 
