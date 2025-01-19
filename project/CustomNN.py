@@ -5,8 +5,19 @@ import numpy as np
 
 class CustomNeuralNetwork:
 
-    def __init__(self, input_size, hidden_layers, output_size, activationType, regularizationType, learning_rate,
-                 momentum, lambd, task_type, nesterov=False):
+    def __init__(
+        self,
+        input_size,
+        hidden_layers,
+        output_size,
+        activationType,
+        regularizationType,
+        learning_rate,
+        momentum,
+        lambd,
+        task_type,
+        nesterov=False,
+    ):
         """
         Initialize the neural network.
         input_size: Number of input features.
@@ -30,11 +41,15 @@ class CustomNeuralNetwork:
         print(self.layers)
 
         # Initialize weights
-        self.weights = [self.gaussian_initialization((self.layers[i], self.layers[i + 1]), seed=62)
-                        for i in range(len(self.layers) - 1)]
+        self.weights = [
+            self.gaussian_initialization((self.layers[i], self.layers[i + 1]), seed=62)
+            for i in range(len(self.layers) - 1)
+        ]
 
         # Initialize bias (bias for each node in each hidden layer and the output layer)
-        self.biases = [np.zeros((1, self.layers[i + 1])) for i in range(len(self.layers) - 1)]
+        self.biases = [
+            np.zeros((1, self.layers[i + 1])) for i in range(len(self.layers) - 1)
+        ]
 
         self.previous_updates_w = [np.zeros_like(w) for w in self.weights]
         self.previous_updates_b = [np.zeros_like(b) for b in self.biases]
@@ -79,7 +94,7 @@ class CustomNeuralNetwork:
         return np.sum([np.sum(np.abs(w)) for w in self.weights])
 
     def regularization_l2(self):
-        return np.sum([np.sum(w ** 2) for w in self.weights])
+        return np.sum([np.sum(w**2) for w in self.weights])
 
     """Generate a weight matrix using a Gaussian distribution."""
 
@@ -95,7 +110,7 @@ class CustomNeuralNetwork:
     def batch_normalization(self, z, gamma, epsilon=1e-8):
         mean = np.mean(z, axis=0, keepdims=True)
         variance = np.var(z, axis=0, keepdims=True)
-        z_normalization = (z - mean)
+        z_normalization = z - mean
 
     """Initialize weights using Xavier Initialization with optional seed for reproducibility."""
 
@@ -160,8 +175,9 @@ class CustomNeuralNetwork:
 
         # Backpropagate errors through each layer
         for i in range(len(self.weights) - 1, 0, -1):
-            error = np.dot(errors[0], self.weights[i].T) * self.derivative_activationFunction(
-                self.afterActivationOutput[i])
+            error = np.dot(
+                errors[0], self.weights[i].T
+            ) * self.derivative_activationFunction(self.afterActivationOutput[i])
             errors.insert(0, error)
 
         # Update weights and biases using gradient descent
@@ -176,19 +192,29 @@ class CustomNeuralNetwork:
 
             # Apply regularization (weight decay)
             weight_gradient += self.lambd * self.weights[i]
-            
+
             if self.nesterov:
                 # interim weights with nesterov momentum
-                interim_weights = self.weights[i] + self.momentum * self.previous_updates_w[i]
-                interim_biases = self.biases[i] + self.momentum * self.previous_updates_b[i]
+                interim_weights = (
+                    self.weights[i] + self.momentum * self.previous_updates_w[i]
+                )
+                interim_biases = (
+                    self.biases[i] + self.momentum * self.previous_updates_b[i]
+                )
 
-                #recompute gradient at the interim point
+                # recompute gradient at the interim point
                 weight_gradient += self.lambd * interim_weights
                 bias_gradient += self.lambd * interim_biases
 
             # Apply momentum and calculate updates
-            weight_update = self.learning_rate * weight_gradient + self.momentum * self.previous_updates_w[i]
-            bias_update = self.learning_rate * bias_gradient + self.momentum * self.previous_updates_b[i]
+            weight_update = (
+                self.learning_rate * weight_gradient
+                + self.momentum * self.previous_updates_w[i]
+            )
+            bias_update = (
+                self.learning_rate * bias_gradient
+                + self.momentum * self.previous_updates_b[i]
+            )
 
             # Update weights and biases
             self.weights[i] -= weight_update  # Nota: il segno è invertito qui
@@ -211,9 +237,21 @@ class CustomNeuralNetwork:
         """
         # Store loss and accuracy for each epoch
         if self.task_type == TaskType.CLASSIFICATION:
-            history = {'train_loss': [], 'train_acc': [], 'epoch': [], 'val_loss': [], 'val_acc': []}
+            history = {
+                "train_loss": [],
+                "train_acc": [],
+                "epoch": [],
+                "val_loss": [],
+                "val_acc": [],
+            }
         else:
-            history = {'train_loss': [], 'train_r2': [], 'epoch': [], 'val_loss': [], 'val_r2': []}
+            history = {
+                "train_loss": [],
+                "train_r2": [],
+                "epoch": [],
+                "val_loss": [],
+                "val_r2": [],
+            }
 
         # Full-batch training if batch_size == -1
         if batch_size == -1:
@@ -228,15 +266,14 @@ class CustomNeuralNetwork:
             epoch_loss = 0
             for i in range(0, X.shape[0], batch_size):
                 # Select the mini-batch
-                X_batch = X_shuffled[i:i + batch_size]
-                y_batch = y_shuffled[i:i + batch_size]
+                X_batch = X_shuffled[i : i + batch_size]
+                y_batch = y_shuffled[i : i + batch_size]
 
                 # Forward and Backward Propagation
                 self.forward(X_batch)
                 self.backward(X_batch, y_batch)
 
-                batch_loss = np.mean((self.afterActivationOutput[
-                                          -1] - y_batch) ** 2)
+                batch_loss = np.mean((self.afterActivationOutput[-1] - y_batch) ** 2)
 
                 if self.regularizationType == RegularizationType.L1:
                     batch_loss += self.lambd * self.regularization_l1()
@@ -252,45 +289,54 @@ class CustomNeuralNetwork:
             if X_val is not None and y_val is not None:
                 predicted_val = self.predict(X_val)
                 if self.regularizationType == RegularizationType.L1:
-                    val_loss = np.mean((predicted_val - y_val) ** 2) + self.lambd * self.regularization_l1()
+                    val_loss = (
+                        np.mean((predicted_val - y_val) ** 2)
+                        + self.lambd * self.regularization_l1()
+                    )
 
                 else:
-                    val_loss = np.mean((predicted_val - y_val) ** 2) + self.lambd * self.regularization_l2()
+                    val_loss = (
+                        np.mean((predicted_val - y_val) ** 2)
+                        + self.lambd * self.regularization_l2()
+                    )
 
             # Calculate accuracy
             if self.task_type == TaskType.CLASSIFICATION:
                 train_predictions = self.predict(X)
                 train_acc = np.mean(train_predictions == y)
 
-                history['train_acc'].append(train_acc)
+                history["train_acc"].append(train_acc)
 
                 if X_val is not None and y_val is not None:
                     val_predictions = self.predict(X_val)
                     val_acc = np.mean(val_predictions == y_val)
-                    history['val_acc'].append(val_acc)
-                    history['val_loss'].append(val_loss)
+                    history["val_acc"].append(val_acc)
+                    history["val_loss"].append(val_loss)
             else:
                 train_predictions = self.predict(X)
                 train_r2 = r2_score(train_predictions, y)  # R^2 Score
-                history['train_r2'].append(train_r2)
+                history["train_r2"].append(train_r2)
 
                 if X_val is not None and y_val is not None:
                     val_predictions = self.predict(X_val)
                     val_r2 = r2_score(val_predictions, y)  # R^2 Score
-                    history['val_r2'].append(val_r2)
-                    history['val_loss'].append(val_loss)
+                    history["val_r2"].append(val_r2)
+                    history["val_loss"].append(val_loss)
 
             # Store metrics
-            history['train_loss'].append(epoch_loss)
-            history['epoch'].append(epoch)
+            history["train_loss"].append(epoch_loss)
+            history["epoch"].append(epoch)
 
             # Print progress
             if epoch % 50 == 0 or epoch == epochs - 1:
                 if self.task_type == TaskType.CLASSIFICATION:
                     print(
-                        f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, Accuracy: {train_acc:.4f}, Val Loss: {epoch_loss:.4f}, Val Accuracy: {train_acc:.4f}")
+                        f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, Accuracy: {train_acc:.4f}, Val Loss: {epoch_loss:.4f}, Val Accuracy: {train_acc:.4f}"
+                    )
                 else:
-                    print(f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, R^2: {train_r2:.4f}")
+                    print(
+                        f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, R^2: {train_r2:.4f}"
+                    )
 
         return history
 

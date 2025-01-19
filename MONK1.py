@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split
+
 from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
 from sklearn.utils import resample
@@ -9,9 +9,9 @@ from project.utility.Search import Search
 from project.utility.utility import (
     one_hot_encode,
     customClassificationReport,
+    removeId,
     preprocessClassificationData,
     accuracy_score_custom_for_grid_search,
-    removeId,
     splitToFeaturesAndTargetClassification,
 )
 
@@ -135,9 +135,9 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [x / 100 for x in range(1, 10)],
-        "momentum": [x / 100 for x in range(90, 100)],
-        "lambd": [x / 1000000 for x in range(1, 10)],
+        "learning_rate": [x / 10 for x in range(1, 10)],
+        "momentum": [x / 100 for x in range(80, 90)],
+        "lambd": [0.0],
     }
 
     # Initialize the Search class for grid search
@@ -153,16 +153,14 @@ if __name__ == "__main__":
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search(
-        X, y, epoch=300, neurons=[3], output_size=1
+        X, y, epoch=200, neurons=[3], output_size=1
     )
-    """X_train, X_val, y_train, y_val = train_test_split(monk1_train_X, monk1_train_Y, test_size=0.2, random_state=42)
-    best_params, best_score = search.holdoutValidation(X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1)"""
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=X.shape[1],
-        hidden_layers=[4],
+        hidden_layers=[3],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],
@@ -174,7 +172,7 @@ if __name__ == "__main__":
 
     # Train the network
     history = nn1.fit(
-        X, y, monk1_validation_X, monk1_validation_Y, epochs=150, batch_size=16
+        X, y, monk1_validation_X, monk1_validation_Y, epochs=200, batch_size=10
     )
 
     # Plot a single graph with Loss and Training Accuracy
@@ -219,7 +217,7 @@ if __name__ == "__main__":
     # Configure the plot
     plt.xlabel("Epochs")  # X-axis as the recorded epochs
     plt.ylabel("Value")  # Shared y-axis label
-    plt.title("Training Loss and Accuracy Over Recorded Epochs")
+    plt.title("MONK1 - Training Loss and Accuracy Over Recorded Epochs")
     plt.legend()
     plt.grid(True)
 
