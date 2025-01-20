@@ -120,12 +120,9 @@ if __name__ == "__main__":
     }
     # Best Parameters: {'learning_rate': 0.1, 'momentum': 0.8, 'lambd': 1e-08},
     # Initialize the Search class for grid search
-    search = Search(
-        model=CustomNeuralNetwork,
-        param_grid=param_grid,
-        activation_type=ActivationType.SIGMOID,
-        regularization_type=RegularizationType.L2,
-    )
+    search = Search(CustomNeuralNetwork, param_grid, accuracy_score_custom, activation_type=ActivationType.TANH,
+                    regularization_type=RegularizationType.L2, task_type=TaskType.CLASSIFICATION, nesterov=False,
+                    decay=0.0001)
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
@@ -135,6 +132,18 @@ if __name__ == "__main__":
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
+    nn3 = CustomNeuralNetwork(input_size=X.shape[1],
+                              hidden_layers=[2],
+                              output_size=1,
+                              activationType=ActivationType.TANH,
+                              learning_rate=best_params['learning_rate'],
+                              momentum=best_params['momentum'],
+                              lambd=best_params['lambd'],
+                              regularizationType=RegularizationType.L2,
+                              taskType=TaskType.CLASSIFICATION,
+                              nesterov=False,
+                              decay=0.0001
+                              )
     nn3 = CustomNeuralNetwork(
         input_size=X.shape[1],
         hidden_layers=[4],

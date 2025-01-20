@@ -15,11 +15,13 @@ Class to perform manual grid search and random search
 
 class Search:
 
-    def __init__(self, model, param_grid, activation_type, regularization_type):
+    def __init__(self, model, param_grid, activation_type, regularization_type, nesterov, decay):
         self.model = model
         self.param_grid = param_grid
         self.activation_type = activation_type
         self.regularization_type = regularization_type
+        self.nesterov = nesterov
+        self.decay = decay
 
     ## function to perform grid search for classification
 
@@ -51,6 +53,8 @@ class Search:
                         lambd=lambd,
                         regularizationType=self.regularization_type,
                         task_type=TaskType.CLASSIFICATION,
+                        nesterov=self.nesterov,
+                        decay=self.decay
                     )
                     # Perform cross-validation to get the mean accuracy
                     mean_accuracy, accuracies = custom_cross_validation_classification(
@@ -112,13 +116,15 @@ class Search:
                             momentum=momentum,
                             lambd=lambd,
                             regularizationType=self.regularization_type,
-                            task_type=self.task_type,
+                            task_type=TaskType.REGRESSION,
+                            nesterov=self.nesterov,
+                            decay=self.decay
                         )
                         # Train the model
                         mean_score, scores = custom_cross_validation_regression(
                             model=model,
-                            X_train=X,
-                            y_train=y,
+                            X_tr=X,
+                            y_tr=y,
                             batch_size=batchSize,
                             epoch=epoch,
                         )
@@ -166,7 +172,9 @@ class Search:
                         momentum=momentum,
                         lambd=lambd,
                         regularizationType=self.regularization_type,
-                        task_type=self.task_type,
+                        task_type=TaskType.REGRESSION,
+                        nesterov=self.nesterov,
+                        decay=self.decay
                     )
 
                     model.fit(X_train, y_train, epochs=epoch, batch_size=8)
@@ -226,7 +234,9 @@ class Search:
                         momentum=momentum,
                         lambd=lambd,
                         regularizationType=self.regularization_type,
-                        task_type=self.task_type,
+                        task_type=TaskType.CLASSIFICATION,
+                        nesterov=self.nesterov,
+                        decay=self.decay
                     )
                     if self.task_type == TaskType.CLASSIFICATION:
                         # Train the model with cross validation

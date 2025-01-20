@@ -6,6 +6,7 @@ class ActivationType(Enum):
     SIGMOID = "sigmoid"
     RELU = "relu"
     TANH = "tanh"
+    ELU = "elu"
 
 
 # types of regularization used in neural network
@@ -16,7 +17,6 @@ class RegularizationType(Enum):
 class RegressionMetrics(Enum):
     MSE = "MSE"
     MAE = "MAE"
-
 
 # types of problem
 class TaskType(Enum):

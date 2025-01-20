@@ -5,19 +5,8 @@ import numpy as np
 
 class CustomNeuralNetwork:
 
-    def __init__(
-        self,
-        input_size,
-        hidden_layers,
-        output_size,
-        activationType,
-        regularizationType,
-        learning_rate,
-        momentum,
-        lambd,
-        task_type,
-        nesterov=False,
-    ):
+    def __init__(self, input_size, hidden_layers, output_size, activationType, regularizationType, learning_rate,
+                 momentum, lambd, task_type, nesterov=False, decay=0.0):
         """
         Initialize the neural network.
         input_size: Number of input features.
@@ -30,10 +19,12 @@ class CustomNeuralNetwork:
         self.activationType = activationType
         self.regularizationType = regularizationType
         self.task_type = task_type
-        self.nesterov = nesterov
         self.learning_rate = learning_rate
+        self.initial_learning_rate = learning_rate
+        self.nesterov = nesterov
         self.momentum = momentum
         self.lambd = lambd
+        self.decay = decay
 
         # list containing the number of neurons in each layer
         self.layers = [input_size] + hidden_layers + [output_size]
@@ -42,7 +33,7 @@ class CustomNeuralNetwork:
 
         # Initialize weights
         self.weights = [
-            self.gaussian_initialization((self.layers[i], self.layers[i + 1]), seed=62)
+            self.xavier_initialization((self.layers[i], self.layers[i + 1]), seed=62)
             for i in range(len(self.layers) - 1)
         ]
 
@@ -89,6 +80,16 @@ class CustomNeuralNetwork:
     @staticmethod
     def relu_derivative(x):
         return (x > 0).astype(float)
+    
+    """ELU activation function."""
+    @staticmethod
+    def elu(x, alpha=1.0):
+        return np.where(x > 0, x, alpha * np.exp(x) - 1)
+    
+    """Derivative of ELU for backpropagation."""
+    @staticmethod
+    def elu_derivative(x, alpha=1.0):
+        return np.where(x > 0, 1, alpha * np.exp(x))
 
     def regularization_l1(self):
         return np.sum([np.sum(np.abs(w)) for w in self.weights])
@@ -132,6 +133,8 @@ class CustomNeuralNetwork:
             return self.relu(z)
         if self.activationType == ActivationType.TANH:
             return self.tanh(z)
+        if self.activationType == ActivationType.ELU:
+            return self.elu(z)
 
     """Function to calculate the derivative of the appropriate activation function based on the passed parameter of 
     the activation type"""
@@ -143,6 +146,8 @@ class CustomNeuralNetwork:
             return self.relu_derivative(afterActivation)
         if self.activationType == ActivationType.TANH:
             return self.tanh_derivative(afterActivation)
+        if self.activationType == ActivationType.ELU:
+            return self.elu_derivative(afterActivation)
 
     """Perform forward propagation."""
 
@@ -245,19 +250,17 @@ class CustomNeuralNetwork:
                 "val_acc": [],
             }
         else:
-            history = {
-                "train_loss": [],
-                "train_r2": [],
-                "epoch": [],
-                "val_loss": [],
-                "val_r2": [],
-            }
+            history = {'train_loss': [], 'train_mee': [], 'epoch': [], 'val_loss': [], 'val_mee': []}
 
         # Full-batch training if batch_size == -1
         if batch_size == -1:
             batch_size = X.shape[0]
 
         for epoch in range(epochs):
+            #Adjust learning rate using time-based decay
+            if self.decay > 0:
+                self.learning_rate = self.initial_learning_rate * (1 / (1 + self.decay * epoch))
+            
             # Shuffle the data at the start of each epoch
             indices = np.random.permutation(X.shape[0])
             X_shuffled = X[indices]
@@ -314,14 +317,18 @@ class CustomNeuralNetwork:
                     history["val_loss"].append(val_loss)
             else:
                 train_predictions = self.predict(X)
-                train_r2 = r2_score(train_predictions, y)  # R^2 Score
-                history["train_r2"].append(train_r2)
+                train_mee = np.mean(np.sqrt(np.sum((y - train_predictions) ** 2, axis=1)))  # MEE calculation
+                history['train_mee'].append(train_mee)
+                #train_r2 = r2_score(train_predictions, y)  # R^2 Score
+                #history['train_r2'].append(train_r2)
 
                 if X_val is not None and y_val is not None:
                     val_predictions = self.predict(X_val)
-                    val_r2 = r2_score(val_predictions, y)  # R^2 Score
-                    history["val_r2"].append(val_r2)
-                    history["val_loss"].append(val_loss)
+                    val_mee = np.mean(np.sqrt(np.sum((y_val - val_predictions) ** 2, axis=1)))  # RMSE calculation
+                    history['val_mee'].append(val_mee)
+                    #val_r2 = r2_score(val_predictions, y_val)  # R^2 Score
+                    #history['val_r2'].append(val_r2)
+                    history['val_loss'].append(val_loss)
 
             # Store metrics
             history["train_loss"].append(epoch_loss)
@@ -331,12 +338,9 @@ class CustomNeuralNetwork:
             if epoch % 50 == 0 or epoch == epochs - 1:
                 if self.task_type == TaskType.CLASSIFICATION:
                     print(
-                        f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, Accuracy: {train_acc:.4f}, Val Loss: {epoch_loss:.4f}, Val Accuracy: {train_acc:.4f}"
-                    )
+                        f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, Accuracy: {train_acc:.4f}, Learning Rate: {self.learning_rate:.6f}")
                 else:
-                    print(
-                        f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, R^2: {train_r2:.4f}"
-                    )
+                    print(f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, ME: {train_mee:.4f}, Learning Rate: {self.learning_rate:.6f}")
 
         return history
 
