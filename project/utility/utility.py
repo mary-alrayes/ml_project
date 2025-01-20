@@ -23,6 +23,10 @@ from sklearn.metrics._plot.confusion_matrix import ConfusionMatrixDisplay
 
 # -----------------------------------common utility ------------------------------------
 
+# Apply moving average smoothing to mitigate noise introduced by one-hot encoding and class balancing
+def moving_average(data, window_size=5):
+    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
+
 
 # function to remove the id column from the data
 def removeId(data):
@@ -166,22 +170,23 @@ def customClassificationReport(trueValue, predictedValues):
 
     print(
         "Accuracy: ",
-        accuracy_score(trueValue, predictedValues),
+        str(accuracy_score(trueValue, predictedValues))[:4],
     )
     print(
         "Precision: ",
-        precision_score(
+        str(precision_score(
             trueValue, predictedValues, average="weighted", zero_division=0
-        ),
+        ))[:4],
     )
     print(
         "Recall: ",
-        recall_score(trueValue, predictedValues, average="weighted", zero_division=0),
+        str(recall_score(trueValue, predictedValues, average="weighted", zero_division=0))[:4],
     )
     print(
         "F1: ",
-        f1_score(trueValue, predictedValues, average="weighted", zero_division=0),
+        str(f1_score(trueValue, predictedValues, average="weighted", zero_division=0))[:4],
     )
+
 
 # Accuracy scoring function
 def accuracy_score_custom_for_grid_search(nn_model, X, y):
@@ -196,7 +201,7 @@ def custom_cross_validation_classification(
     y_tr,
     epoch,
     batch_size,
-    num_folds=5,
+    num_folds=3,
 ):
     """
     Perform stratified k-fold cross-validation
@@ -271,6 +276,9 @@ def splitDataToTrainingAndValidationForRegression(
     Parameters:
     - data: Input DataFrame with features and targets.
 
+    Returns:
+    - split_train_set: Training set.
+    - split_validation_set: Validation set.
     """
 
     # Convert to NumPy array
@@ -342,7 +350,7 @@ def min_max_denormalization(predictions, data, target_columns):
 
     # Initialize a copy of the predictions array
     denorm_predictions = predictions.copy()
-   
+
     # Select the columns of interest for denormalization
     target_data = data[target_columns]
 
@@ -366,7 +374,7 @@ def denormalize_zscore(predictions, data, target_columns):
 
     # Initialize a copy of the predictions array
     denorm_predictions = predictions.copy()
-    
+
     # Select the columns of interest for denormalization
     target_data = data[target_columns]
     for idx, target_column in enumerate(target_columns):
@@ -412,7 +420,7 @@ def preprocessRegrData(data, standard,target_columns=["TARGET_x", "TARGET_y", "T
     split_train_set, split_validation_set = splitDataToTrainingAndValidationForRegression(data)
     # use z-score normalization
     if standard:
-       
+
         # Normalize the training set and get its means and stds
         split_train_set, train_means, train_stds = zscore_normalization(split_train_set)
         # Normalize the validation set using the training set's means and stds
@@ -422,11 +430,11 @@ def preprocessRegrData(data, standard,target_columns=["TARGET_x", "TARGET_y", "T
         train_X, train_Y = splitToFeaturesAndTargetRegression(split_train_set, target_columns)
         # split the validation set to features and target
         validation_X, validation_Y = splitToFeaturesAndTargetRegression(split_validation_set, target_columns)
-    
+
     # use min-max normalization
     else:
-    
-        # Normalize the training set 
+
+        # Normalize the training set
         split_train_set, train_min, train_max = min_max_normalization(split_train_set)
         # Normalize the validation set using the training set's means and stds
         split_validation_set, _, _ = min_max_normalization(split_validation_set, min_vals=train_min, max_vals=train_max)
@@ -448,7 +456,7 @@ def preprocessRegressionTestData(data, test_X, standard=True, target_columns=['T
 
     # Extract feature columns (exclude target columns)
     feature_columns = split_train_set.drop(columns=target_columns).columns
-    
+
     if standard:
         # Normalize the training set and get its means and stds
         split_train_set[feature_columns], train_means, train_stds = zscore_normalization(split_train_set[feature_columns])
@@ -461,7 +469,7 @@ def preprocessRegressionTestData(data, test_X, standard=True, target_columns=['T
 
         # Normalize the test set using the training set's min and max values
         test_X[feature_columns], _, _ = min_max_normalization(test_X[feature_columns], min_vals=train_min, max_vals=train_max)
-    
+
     return np.array(test_X)
 
 # custom function to give a full report for regression
@@ -554,7 +562,7 @@ def custom_cross_validation_regression(
 
     """
 
-    X_tr, y_tr = np.array(X_tr), np.array(y_tr)
+    X_train, y_train = np.array(X_tr), np.array(y_tr)
 
     # Initialize stratified k-fold
     skf = KFold(n_splits=num_folds, shuffle=True, random_state=42)

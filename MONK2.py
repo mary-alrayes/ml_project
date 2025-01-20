@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
 from sklearn.utils import resample
-from project.utility.Enum import RegularizationType, ActivationType, TaskType
+from project.utility.Enum import RegularizationType, ActivationType, TaskType, InizializzationType
 from project.utility.Search import Search
 from project.utility.utility import (
     balanceData,
@@ -13,7 +13,7 @@ from project.utility.utility import (
     removeId,
     accuracy_score_custom_for_grid_search,
     preprocessClassificationData,
-    splitToFeaturesAndTargetClassification,
+    splitToFeaturesAndTargetClassification, moving_average,
 )
 
 if __name__ == "__main__":
@@ -74,7 +74,9 @@ if __name__ == "__main__":
     print(monk2_test_data.head())
 
     # balancing data cause the target column is not balanced
+    print("Class distribution before balancing:", monk2_train_data["target"].value_counts())
     monk2_train_data = balanceData(monk2_train_data)
+    print("Class distribution after balancing:", monk2_train_data["target"].value_counts())
 
     # --------------------------------------------------MONK2-----------------------------------------------------------
 
@@ -112,9 +114,12 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.1 / (10**i) for i in range(10)],
-        "momentum": [x / 100 for x in range(80, 90)],
+        "learning_rate": [0.1],
+        "momentum": [0.9],
         "lambd": [0.0],
+        "decay": [0.0],
+        "dropout": [0.0],
+        "batch_size": [x for x in range(8, 13)]
     }
     # Best Parameters: {'learning_rate': 0.1, 'momentum': 0.8, 'lambd': 0.0}, Best Score: 1.0000
 
@@ -124,12 +129,16 @@ if __name__ == "__main__":
         param_grid=param_grid,
         activation_type=ActivationType.SIGMOID,
         regularization_type=RegularizationType.L2,
+        inizialization=InizializzationType.XAVIER,
+        nesterov=True,
+        decay=0.0,
+        dropout=0.0
     )
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search_classification(
-        X, y, epoch=200, batchSize=6, neurons=[2], output_size=1
+        X, y, epoch=200, neurons=[2], output_size=1,
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
@@ -144,11 +153,15 @@ if __name__ == "__main__":
         lambd=best_params["lambd"],
         regularizationType=RegularizationType.L2,
         task_type=TaskType.CLASSIFICATION,
+        initialization=InizializzationType.XAVIER,
+        dropout_rate=best_params["dropout"],
+        decay=best_params["decay"],
+        nesterov=True
     )
 
     # Train the network
     history = nn2.fit(
-        X, y, monk2_validation_X, monk2_validation_Y, epochs=200, batch_size=6
+        X, y, monk2_validation_X, monk2_validation_Y, epochs=100, batch_size=best_params["batch_size"]
     )
 
     # Plot a single graph with Loss and Training Accuracy

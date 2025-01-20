@@ -14,9 +14,15 @@ class RegularizationType(Enum):
     L1 = "l1"
     L2 = "l2"
 
+
 class RegressionMetrics(Enum):
     MSE = "MSE"
     MAE = "MAE"
+
+class InizializzationType(Enum):
+    GAUSSIAN = "gaussian"
+    XAVIER = "xavier"
+
 
 # types of problem
 class TaskType(Enum):

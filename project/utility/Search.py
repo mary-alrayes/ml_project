@@ -6,7 +6,7 @@ from project.utility.utility import (
     custom_cross_validation_classification,
     custom_cross_validation_regression,
 )
-from project.utility.Enum import TaskType
+from project.utility.Enum import TaskType, InizializzationType
 
 """
 Class to perform manual grid search and random search
@@ -15,88 +15,107 @@ Class to perform manual grid search and random search
 
 class Search:
 
-    def __init__(self, model, param_grid, activation_type, regularization_type, nesterov, decay):
+    def __init__(self, model, param_grid, activation_type, regularization_type, inizialization, nesterov, decay,
+                 dropout):
         self.model = model
         self.param_grid = param_grid
         self.activation_type = activation_type
         self.regularization_type = regularization_type
+        self.inizialization = inizialization
         self.nesterov = nesterov
         self.decay = decay
+        self.dropout = dropout
 
     ## function to perform grid search for classification
 
     def grid_search_classification(
-        self,
-        X,
-        y,
-        epoch=100,
-        batchSize=16,
-        neurons=[3],
-        output_size=1,
+            self,
+            X,
+            y,
+            epoch=100,
+            neurons=[3],
+            output_size=1,
     ):
-
         best_score_class = -float("inf")
         best_params = None
 
-        # Iterate over all possible combinations of hyperparameters
-        for learning_rate in self.param_grid["learning_rate"]:
-            for momentum in self.param_grid["momentum"]:
-                for lambd in self.param_grid["lambd"]:
-                    # Initialize a new model instance with current parameters
-                    model = self.model(
-                        input_size=X.shape[1],
-                        hidden_layers=neurons,
-                        output_size=output_size,
-                        activationType=self.activation_type,
-                        learning_rate=learning_rate,
-                        momentum=momentum,
-                        lambd=lambd,
-                        regularizationType=self.regularization_type,
-                        task_type=TaskType.CLASSIFICATION,
-                        nesterov=self.nesterov,
-                        decay=self.decay
-                    )
-                    # Perform cross-validation to get the mean accuracy
-                    mean_accuracy, accuracies = custom_cross_validation_classification(
-                        model=model,
-                        X_tr=X,
-                        y_tr=y,
-                        epoch=epoch,
-                        batch_size=batchSize,
-                    )
-                    score = mean_accuracy
-                    # Log the parameters and score for debugging
-                    print(
-                        f"Grid Search: Learning Rate={learning_rate}, Momentum={momentum}, Lambda={lambd}, Score={mean_accuracy:.4f}"
-                    )
-                    print("-----------------------------------------------------")
-                    # Update the best score and parameters if a better score is found
-                    if score > best_score_class:
-                        best_score_class = score
-                        best_params = {
-                            "learning_rate": learning_rate,
-                            "momentum": momentum,
-                            "lambd": lambd,
-                        }
-        best_score = best_score_class
+        # Genera tutte le combinazioni di iperparametri utilizzando itertools.product
+        param_combinations = product(
+            self.param_grid["learning_rate"],
+            self.param_grid["momentum"],
+            self.param_grid["lambd"],
+            self.param_grid["dropout"],
+            self.param_grid["decay"],
+            self.param_grid["batch_size"]
+        )
 
-        # Ensure best_params and best_score are consistent
+        for params in param_combinations:
+            learning_rate, momentum, lambd, dropout, decay, batch_size = params
+
+            # Inizializza il modello con i parametri attuali
+            model = self.model(
+                input_size=X.shape[1],
+                hidden_layers=neurons,
+                output_size=output_size,
+                activationType=self.activation_type,
+                learning_rate=learning_rate,
+                momentum=momentum,
+                lambd=lambd,
+                regularizationType=self.regularization_type,
+                task_type=TaskType.CLASSIFICATION,
+                initialization=self.inizialization,
+                nesterov=self.nesterov,
+                decay=decay,
+                dropout_rate=dropout
+            )
+
+            # Esegui la cross-validation per ottenere la media dell'accuratezza
+            mean_accuracy, accuracies = custom_cross_validation_classification(
+                model=model,
+                X_tr=X,
+                y_tr=y,
+                epoch=epoch,
+                batch_size=batch_size,
+            )
+
+            score = mean_accuracy
+
+            # Stampa i parametri e il punteggio ottenuto
+            print(
+                f"Grid Search: LR={learning_rate}, Momentum={momentum}, Lambda={lambd}, "
+                f"Dropout={dropout}, Decay={decay}, Batch Size={batch_size}, Score={mean_accuracy:.4f}"
+            )
+            print("-----------------------------------------------------")
+
+            # Aggiorna i parametri migliori se troviamo un punteggio più alto
+            if score > best_score_class:
+                best_score_class = score
+                best_params = {
+                    "learning_rate": learning_rate,
+                    "momentum": momentum,
+                    "lambd": lambd,
+                    "dropout": dropout,
+                    "decay": decay,
+                    "batch_size": batch_size,
+                }
+
+        # Verifica e stampa i migliori parametri trovati
         if best_params is not None:
-            print(f"\nBest Parameters: {best_params}, Best Score: {best_score:.4f}")
+            print(f"\nBest Parameters: {best_params}, Best Score: {best_score_class:.4f}")
         else:
             print("\nNo valid parameters found during grid search.")
 
-        return best_params, best_score
+        return best_params, best_score_class
 
-    ## function to perform grid search for regression
+    # function to perform grid search for regression
     def grid_search_regression(
-        self,
-        X,
-        y,
-        epoch=100,
-        batchSize=16,
-        neurons=[3],
-        output_size=1,
+            self,
+            X,
+            y,
+            epoch=100,
+            batchSize=16,
+            neurons=[3],
+            output_size=1,
     ):
         best_score_regr = float("inf")
         best_params = None
@@ -116,7 +135,6 @@ class Search:
                             momentum=momentum,
                             lambd=lambd,
                             regularizationType=self.regularization_type,
-                            task_type=TaskType.REGRESSION,
                             nesterov=self.nesterov,
                             decay=self.decay
                         )
@@ -154,7 +172,7 @@ class Search:
         return best_params, best_score
 
     def holdoutValidation(
-        self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1
+            self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1
     ):
         best_score = -float("inf")
         best_params = None
@@ -172,7 +190,6 @@ class Search:
                         momentum=momentum,
                         lambd=lambd,
                         regularizationType=self.regularization_type,
-                        task_type=TaskType.REGRESSION,
                         nesterov=self.nesterov,
                         decay=self.decay
                     )
@@ -201,7 +218,7 @@ class Search:
     import random
 
     def random_grid_search(
-        self, X, y, n_iter=10, epoch=100, neurons=[1], output_size=1
+            self, X, y, n_iter=10, epoch=100, neurons=[1], output_size=1
     ):
         """Perform random grid search, including patience as a parameter"""
 
@@ -234,7 +251,7 @@ class Search:
                         momentum=momentum,
                         lambd=lambd,
                         regularizationType=self.regularization_type,
-                        task_type=TaskType.CLASSIFICATION,
+                        task_type=self.task_type,
                         nesterov=self.nesterov,
                         decay=self.decay
                     )

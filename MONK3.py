@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
 from sklearn.utils import resample
-from project.utility.Enum import RegularizationType, ActivationType, TaskType
+from project.utility.Enum import RegularizationType, ActivationType, TaskType, InizializzationType
 from project.utility.Search import Search
 from project.utility.utility import (
     balanceData,
@@ -152,8 +152,10 @@ if __name__ == "__main__":
         learning_rate=best_params["learning_rate"],
         momentum=best_params["momentum"],
         lambd=best_params["lambd"],
-        regularizationType=RegularizationType.L2,
+        regularizationType=RegularizationType.L1,
         task_type=TaskType.CLASSIFICATION,
+        initialization=InizializzationType.GAUSSIAN,
+        dropout_rate=0.0
     )
 
     # Train the network
