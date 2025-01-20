@@ -123,10 +123,10 @@ if __name__ == "__main__":
     plt.plot(history['epoch'], history['val_loss'], label='Validation Loss', color='green', linestyle='-')
 
     # Plot Training Accuracy
-    plt.plot(history['epoch'], history['train_me'], label='Training me', color='orange', linestyle='--')
+    plt.plot(history['epoch'], history['train_mee'], label='Training MEE', color='orange', linestyle='--')
     
     # Plot Validation Accuracy
-    plt.plot(history['epoch'], history['val_me'], label='Validation me', color='red', linestyle='--')
+    plt.plot(history['epoch'], history['val_mee'], label='Validation MEE', color='red', linestyle='--')
 
     # Configure the plot
     plt.xlabel("Epochs")  # X-axis as the recorded epochs

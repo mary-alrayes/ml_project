@@ -340,7 +340,7 @@ class CustomNeuralNetwork:
                     print(
                         f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, Accuracy: {train_acc:.4f}, Learning Rate: {self.learning_rate:.6f}")
                 else:
-                    print(f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, ME: {train_mee:.4f}, Learning Rate: {self.learning_rate:.6f}")
+                    print(f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, MEE: {train_mee:.4f}, Learning Rate: {self.learning_rate:.6f}")
 
         return history
 
