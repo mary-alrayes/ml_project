@@ -1,4 +1,4 @@
-from project.utility.Enum import ActivationType, RegularizationType, TaskType, InizializzationType
+from project.utility.Enum import ActivationType, RegularizationType, TaskType, InitializationType
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 
@@ -18,7 +18,7 @@ class CustomNeuralNetwork:
         task_type,
         dropout_rate=0.0,
         nesterov=False,
-        initialization=InizializzationType.GAUSSIAN,
+        initialization=InitializationType.GAUSSIAN,
         decay=0
     ):
         """
@@ -49,14 +49,19 @@ class CustomNeuralNetwork:
         print(self.layers)
 
         # Initialize weights
-        if self.initialization == InizializzationType.GAUSSIAN:
+        if self.initialization == InitializationType.GAUSSIAN:
             self.weights = [
                 self.gaussian_initialization((self.layers[i], self.layers[i + 1]), mean=0.0, std_dev=0.1, seed=62)
                 for i in range(len(self.layers) - 1)
             ]
-        elif self.initialization == InizializzationType.XAVIER:
+        elif self.initialization == InitializationType.XAVIER:
             self.weights = [
                 self.xavier_initialization((self.layers[i], self.layers[i + 1]), seed=62)
+                for i in range(len(self.layers) - 1)
+            ]
+        elif self.initialization == InitializationType.HE:
+            self.weights = [    
+                self.he_initialization((self.layers[i], self.layers[i + 1]), seed=62)
                 for i in range(len(self.layers) - 1)
             ]
 
@@ -151,6 +156,18 @@ class CustomNeuralNetwork:
         n_in, n_out = shape  # Ensure correct unpacking
         limit = np.sqrt(6 / (n_in + n_out))  # Xavier initialization range
         return np.random.uniform(-limit, limit, size=shape)
+    
+    @staticmethod
+    def he_initialization(shape, seed=62):
+        if seed is not None:
+            np.random.seed(seed)
+
+        if len(shape) != 2:
+            raise ValueError("Shape should be a tuple with two elements (n_in, n_out).")
+
+        n_in, _ = shape
+        stddev = np.sqrt(2 / n_in)  # He initialization standard deviation
+        return np.random.randn(*shape) * stddev
 
     """ function to apply the appropriate activation function based on the passed parameter of the activation type"""
 
@@ -239,6 +256,7 @@ class CustomNeuralNetwork:
                 interim_weights = (
                     self.weights[i] + self.momentum * self.previous_updates_w[i]
                 )
+                # interim bias with nesterov momentum
                 interim_biases = (
                     self.biases[i] + self.momentum * self.previous_updates_b[i]
                 )

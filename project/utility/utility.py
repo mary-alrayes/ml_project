@@ -266,7 +266,6 @@ def custom_cross_validation_classification(
 
 # ----------------------------REGRESSION-----------------------------------
 
-
 def splitDataToTrainingAndValidationForRegression(
     data,
 ):
@@ -291,7 +290,7 @@ def splitDataToTrainingAndValidationForRegression(
     shuffled_indices = np.random.permutation(len(data_array))
 
     # Calculate the split index
-    split_index = int(len(data_array) * (1 - 0.2))
+    split_index = int(len(data_array) * (1 - 0.15))
 
     # Split the data
     train_indices = shuffled_indices[:split_index]
@@ -305,6 +304,45 @@ def splitDataToTrainingAndValidationForRegression(
     split_validation_set_df = pd.DataFrame(split_validation_set, columns=data.columns)
 
     return split_train_set_df, split_validation_set_df
+
+def splitDataToTrainingAndAssessmentForRegression(
+    data,
+):
+    """
+    Split data into training and assessment sets for multi-target regression.
+
+    Parameters:
+    - data: Input DataFrame with features and targets.
+
+    Returns:
+    - split_train_set: Training set.
+    - split_assessment_set: Assessment set.
+    """
+
+    # Convert to NumPy array
+    data_array = np.array(data)
+
+    # Set random seed for reproducibility
+    np.random.seed(42)
+
+    # Shuffle the data
+    shuffled_indices = np.random.permutation(len(data_array))
+
+    # Calculate the split index
+    split_index = int(len(data_array) * (1 - 0.15))
+
+    # Split the data
+    train_indices = shuffled_indices[:split_index]
+    assessment_indices = shuffled_indices[split_index:]
+
+    split_train_set = data_array[train_indices]
+    split_assessment_set = data_array[assessment_indices]
+
+    # Convert to DataFrames
+    split_train_set_df = pd.DataFrame(split_train_set, columns=data.columns)
+    split_assessment_set_df = pd.DataFrame(split_assessment_set, columns=data.columns)
+
+    return split_train_set_df, split_assessment_set_df
 
 
 # function to split data to features and target
@@ -413,59 +451,66 @@ def zscore_normalization(data, means=None, stds=None):
 # 3. split the data to training and validation
 # 4. split training data to X and Y
 # 5. split validation data to X and Y
-def preprocessRegrData(data, standard,target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]):
+def preprocessRegrData(data, standard, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]):
     # remove the id column
     data = removeId(data)
-     # split the data to training and validation
+    # split the data to training and validation
     split_train_set, split_validation_set = splitDataToTrainingAndValidationForRegression(data)
+    # split the data to training and assessment
+    split_train_set, split_assessment_set = splitDataToTrainingAndAssessmentForRegression(split_train_set)
+    
     # use z-score normalization
     if standard:
 
         # Normalize the training set and get its means and stds
-        split_train_set, train_means, train_stds = zscore_normalization(split_train_set)
+        train_set, train_means, train_stds = zscore_normalization(split_train_set)
         # Normalize the validation set using the training set's means and stds
         split_validation_set, _, _ = zscore_normalization(split_validation_set, means=train_means, stds=train_stds)
-
+        # Normalize the assessment set using the training set's means and stds
+        split_assessment_set, _, _ = zscore_normalization(split_assessment_set, means=train_means, stds=train_stds)
+        
         # split the training set to features and target
-        train_X, train_Y = splitToFeaturesAndTargetRegression(split_train_set, target_columns)
+        train_X, train_Y = splitToFeaturesAndTargetRegression(train_set, target_columns)
         # split the validation set to features and target
         validation_X, validation_Y = splitToFeaturesAndTargetRegression(split_validation_set, target_columns)
+        # split the assessment set to features and target
+        assessment_X, assessment_Y = splitToFeaturesAndTargetRegression(split_assessment_set, target_columns)
 
     # use min-max normalization
     else:
 
         # Normalize the training set
-        split_train_set, train_min, train_max = min_max_normalization(split_train_set)
-        # Normalize the validation set using the training set's means and stds
+        train_set, train_min, train_max = min_max_normalization(split_train_set)
+        # Normalize the validation set using the training set's min and max
         split_validation_set, _, _ = min_max_normalization(split_validation_set, min_vals=train_min, max_vals=train_max)
+        #Normalize the assessment set using the training set's min and max
+        split_assessment_set, _, _ = min_max_normalization(split_assessment_set, min_vals=train_min, max_vals=train_max)
 
         # split the training set to features and target
-        train_X, train_Y = splitToFeaturesAndTargetRegression(split_train_set, target_columns)
+        train_X, train_Y = splitToFeaturesAndTargetRegression(train_set, target_columns)
         # split the validation set to features and target
         validation_X, validation_Y = splitToFeaturesAndTargetRegression(split_validation_set, target_columns)
+        # split the assessment set to features and target
+        assessment_X, assessment_Y = splitToFeaturesAndTargetRegression(split_assessment_set, target_columns)
 
-    return np.array(train_X), np.array(train_Y), np.array(validation_X), np.array(validation_Y)
+    return split_train_set, np.array(train_X), np.array(train_Y), np.array(validation_X), np.array(validation_Y), np.array(assessment_X), np.array(assessment_Y)
 
 def preprocessRegressionTestData(data, test_X, standard=True, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z']):
     # remove the id column
-    data = removeId(data)
     test_X = removeId(test_X)
 
-    # split the data to training and validation
-    split_train_set, _ = splitDataToTrainingAndValidationForRegression(data)
-
     # Extract feature columns (exclude target columns)
-    feature_columns = split_train_set.drop(columns=target_columns).columns
+    feature_columns = data.drop(columns=target_columns).columns
 
     if standard:
         # Normalize the training set and get its means and stds
-        split_train_set[feature_columns], train_means, train_stds = zscore_normalization(split_train_set[feature_columns])
+        data[feature_columns], train_means, train_stds = zscore_normalization(data[feature_columns])
 
         # Normalize the test set using the training set's means and stds
         test_X[feature_columns], _, _ = zscore_normalization(test_X[feature_columns], means=train_means, stds=train_stds)
     else:
         # Normalize the training set and get its min and max values
-        split_train_set[feature_columns], train_min, train_max = min_max_normalization(split_train_set[feature_columns])
+        data[feature_columns], train_min, train_max = min_max_normalization(data[feature_columns])
 
         # Normalize the test set using the training set's min and max values
         test_X[feature_columns], _, _ = min_max_normalization(test_X[feature_columns], min_vals=train_min, max_vals=train_max)
@@ -474,14 +519,14 @@ def preprocessRegressionTestData(data, test_X, standard=True, target_columns=['T
 
 # custom function to give a full report for regression
 # takes the true values of the target , the predicted values, and the target columns names
-# it gives the MAE , MSE, RMSE,R2
+# it gives the MAE, MSE, RMSE, R2, MEE
 def customRegressionReport(trueValues, predictedValues, target_names):
     # Print individual regression metrics
     mae = mean_absolute_error(trueValues, predictedValues)
     mse = mean_squared_error(trueValues, predictedValues)
     rmse = mse**0.5
     r2 = r2_score(trueValues, predictedValues)
-    mee = np.mean(np.sqrt(np.sum(trueValues - predictedValues) ** 2, axis=1))
+    mee = np.mean(np.sqrt(np.sum((trueValues - predictedValues) ** 2, axis=1)))
 
     print(f"Mean Absolute Error (MAE): {mae:.4f}")
     print(f"Mean Squared Error (MSE): {mse:.4f}")
@@ -607,6 +652,27 @@ def custom_cross_validation_regression(
     # Return  the mean score and the fold scores
     return mean_score, fold_scores
 
+def averaging_ensemble(models, X):
+    """
+    Perform an averaging ensemble for regression models.
+
+    Parameters:
+    - models: List of trained regression models.
+    - X: Input data.
+
+    Returns:
+    - predictions: Averaged predictions from the ensemble.
+    """
+
+    # Get predictions from all models
+    predictions = [model.predict(X) for model in models]
+
+    # Average of the predictions
+    averaged_predictions = np.mean(predictions, axis=0)
+
+    return averaged_predictions
+
+# save the results in a csv file
 def save_predictions_to_csv(data, file_name):
     data = pd.DataFrame(data, columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     data.to_csv(file_name, index=False)
