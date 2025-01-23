@@ -114,8 +114,8 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.2],
-        "momentum": [0.9],
+        "learning_rate": [0.5],
+        "momentum": [0.8],
         "lambd": [0.0],
         "decay": [0.0],
         "dropout": [0],
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search_classification(
-        X, y, epoch=200, neurons=[4], output_size=1,
+        X, y, epoch=200, neurons=[3], output_size=1,
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
