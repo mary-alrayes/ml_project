@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
 from project.CustomNN import CustomNeuralNetwork
-from project.utility.Enum import RegularizationType, ActivationType, TaskType, InizializzationType
+from project.utility.Enum import RegularizationType, ActivationType, TaskType, InitializationType
 from project.utility.Search import Search
 from project.utility.utility import (
     one_hot_encode,
@@ -67,12 +67,12 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.1],
-        "momentum": [0.9],
+        "learning_rate": [0.2],
+        "momentum": [0.8],
         "lambd": [0.0],
         "decay": [0.0],
         "dropout": [0.0],
-        "batch_size": [5],
+        "batch_size": [4],
     }
 
     print(f"Min X: {np.min(monk1_train_X)}, Max X: {np.max(monk1_train_X)}")
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         param_grid=param_grid,
         activation_type=ActivationType.SIGMOID,
         regularization_type=RegularizationType.L2,
-        inizialization=InizializzationType.GAUSSIAN,
+        initialization=InitializationType.XAVIER,
         nesterov=False,
         decay=0.0,
         dropout=0.0
@@ -92,14 +92,14 @@ if __name__ == "__main__":
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search_classification(
-        monk1_train_X, monk1_train_Y, epoch=500, neurons=[4], output_size=1,
+        monk1_train_X, monk1_train_Y, epoch=500, neurons=[3], output_size=1,
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=monk1_train_X.shape[1],
-        hidden_layers=[4],
+        hidden_layers=[3],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         lambd=best_params["lambd"],
         regularizationType=RegularizationType.L2,
         task_type=TaskType.CLASSIFICATION,
-        initialization=InizializzationType.GAUSSIAN,
+        initialization=InitializationType.XAVIER,
         dropout_rate=best_params["dropout"],
         decay=best_params["decay"],
         nesterov=True
@@ -182,4 +182,4 @@ if __name__ == "__main__":
     mse_train = history_final['train_loss']
     mse_train = np.mean(mse_train)
 
-    print(f"MSE(TR) : {mse_train:.10f}, MSE(TS): {mse_test:.10f}")
+    print(f"MSE(TR) : {mse_train}, MSE(TS): {mse_test}")

@@ -303,7 +303,7 @@ class CustomNeuralNetwork:
 
     """Train the neural network."""
 
-    def fit(self, X, y, X_val=None, y_val=None, epochs=1000, batch_size=-1, patience=100, seed=42):
+    def fit(self, X, y, X_val=None, y_val=None, epochs=1000, batch_size=-1, patience=50, seed=42):
         """Train the neural network.
         :param X_val: Validation input data.
         :param y_val: Validation target labels.
