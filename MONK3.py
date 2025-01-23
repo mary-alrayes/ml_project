@@ -1,9 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
-
-from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
-from sklearn.utils import resample
+from project.CustomNN import CustomNeuralNetwork
 from project.utility.Enum import RegularizationType, ActivationType, TaskType, InitializationType
 from project.utility.Search import Search
 from project.utility.utility import (
@@ -11,9 +9,9 @@ from project.utility.utility import (
     one_hot_encode,
     customClassificationReport,
     removeId,
-    accuracy_score_custom_for_grid_search,
     preprocessClassificationData,
     splitToFeaturesAndTargetClassification,
+    min_max_scaling,
 )
 
 if __name__ == "__main__":
@@ -26,9 +24,7 @@ if __name__ == "__main__":
         sep=" ",
         header=None,
     )
-    # Drop the first column (not needed for training)
     monk3_train_data = monk3_train_data.drop(monk3_train_data.columns[0], axis=1)
-    # Rename columns according to dataset description
     monk3_train_data.rename(
         columns={
             1: "target",
@@ -49,9 +45,7 @@ if __name__ == "__main__":
         sep=" ",
         header=None,
     )
-    # Drop the first column (not needed for testing)
     monk3_test_data = monk3_test_data.drop(monk3_test_data.columns[0], axis=1)
-    # Rename columns according to dataset description
     monk3_test_data.rename(
         columns={
             1: "target",
@@ -66,18 +60,35 @@ if __name__ == "__main__":
         inplace=True,
     )
 
-    # Print loaded data for verification
     print("MONK3")
     print("Train data")
     print(monk3_train_data.head())
     print("Test data")
     print(monk3_test_data.head())
 
-    # balancing data cause the target column is not balanced
+    # Balancing data
     monk3_train_data = balanceData(monk3_train_data)
 
+    # Preprocessing data
+    monk3_train_X, monk3_train_Y, monk3_validation_X, monk3_validation_Y = preprocessClassificationData(monk3_train_data)
+
+    monk3_train_X = monk3_train_X.reshape(monk3_train_X.shape[0], -1)
+    monk3_train_Y = monk3_train_Y.reshape(-1, 1)
+
+    monk3_validation_X = np.array(monk3_validation_X)
+    monk3_validation_Y = np.array(monk3_validation_Y)
+    monk3_validation_X = monk3_validation_X.reshape(monk3_validation_X.shape[0], -1)
+
+    # Apply rescaling to training data
+    monk3_train_X, X_min, X_max = min_max_scaling(monk3_train_X, feature_range=(-1, 1))
+    monk3_validation_X = (monk3_validation_X - X_min) / (X_max - X_min + 1e-8)
+    monk3_validation_X = monk3_validation_X * (1 - (-1)) + (-1)
+
+    print(f"Rescaled train X shape: {monk3_train_X.shape}")
+    print(f"Rescaled val X shape: {monk3_validation_X.shape}")
+
+
     # --------------------------------------------------MONK3-----------------------------------------------------------
-    print("-------------------------------------")
     print("\nReal Testing\n")
 
     # reshape train_X, train_Y, validation_X
@@ -197,10 +208,6 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid(True)
     plt.show()
-    # Validation predictions
-    print("Predicting validation set")
-    monk3_validation_nn_predictions = nn3.predict(monk3_validation_X)
-    customClassificationReport(monk3_validation_Y, monk3_validation_nn_predictions)
 
     # Validation predictions
     print("Predicting validation set")
