@@ -57,14 +57,6 @@ if __name__ == "__main__":
     monk1_validation_X = np.array(monk1_validation_X).reshape(monk1_validation_X.shape[0], -1)
     monk1_validation_Y = np.array(monk1_validation_Y)
 
-    # Apply rescaling to training data
-    monk1_train_X, X_min, X_max = min_max_scaling(monk1_train_X, feature_range=(-1, 1))
-    monk1_validation_X = (monk1_validation_X - X_min) / (X_max - X_min + 1e-8)
-    monk1_validation_X = monk1_validation_X * (1 - (-1)) + (-1)
-
-    print(f"Riscalato train X shape: {monk1_train_X.shape}")
-    print(f"Riscalato val X shape: {monk1_validation_X.shape}")
-
     # Define the parameter grid
     param_grid = {
         "learning_rate": [0.2],

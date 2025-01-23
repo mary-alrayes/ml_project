@@ -115,14 +115,15 @@ if __name__ == "__main__":
     # Define the parameter grid
     param_grid = {
         "learning_rate": [0.08],
-        "momentum": [0.7],
-        "lambd": [0.0],
-        "decay": [0.6],
+        "momentum": [0.9],
+        "lambd": [0.002],
+        "decay": [0.5],
         "dropout": [0],
-        "batch_size": [4]
+        "batch_size": [8]
     }
-    # Best Parameters: {'learning_rate': 0.1, 'momentum': 0.9, 'lambd': 0.0, 'batch_size': 2}, Best Score: 1.0000
-    # Best Parameters: {'learning_rate': 0.1, 'momentum': 0.8, 'lambd': 1e-08},
+    # Best Monk3 without regularization is the below, with lambda is the one in the one in param_grid
+    # Best Parameters: {'learning_rate': 0.08, 'momentum': 0.9, 'lambd': 0.0, decay: 0.6, dropout: 0, batch: 4},
+
     # Initialize the Search class for grid search
     search = Search(
         model=CustomNeuralNetwork,
