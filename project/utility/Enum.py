@@ -19,11 +19,12 @@ class RegressionMetrics(Enum):
     MSE = "MSE"
     MAE = "MAE"
 
-class InizializzationType(Enum):
+# types of initialization used in neural network
+class InitializationType(Enum):
     GAUSSIAN = "gaussian"
     XAVIER = "xavier"
     RANDOM = "random"
-
+    HE = "he"
 
 # types of problem
 class TaskType(Enum):
