@@ -23,14 +23,58 @@ from sklearn.metrics._plot.confusion_matrix import ConfusionMatrixDisplay
 
 # -----------------------------------common utility ------------------------------------
 
-# Apply moving average smoothing to mitigate noise introduced by one-hot encoding and class balancing
-def moving_average(data, window_size=5):
-    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
-
-
 # function to remove the id column from the data
 def removeId(data):
     return data.drop("ID", axis=1, errors="ignore")
+
+
+import numpy as np
+
+
+def min_max_scaling(X, feature_range=(-1, 1)):
+    """
+    Applica la riscalatura Min-Max a un array numpy.
+
+    Args:
+        X (numpy.ndarray): Dati di input (array 2D).
+        feature_range (tuple): Intervallo di riscalatura desiderato (default: [-1, 1]).
+
+    Returns:
+        numpy.ndarray: Dati scalati nell'intervallo specificato.
+        numpy.ndarray: Valori minimi originali delle feature.
+        numpy.ndarray: Valori massimi originali delle feature.
+    """
+    min_val, max_val = feature_range  # Intervallo target
+
+    X_min = np.min(X, axis=0)  # Minimi delle colonne (features)
+    X_max = np.max(X, axis=0)  # Massimi delle colonne (features)
+
+    # Evitare divisione per zero nel caso di feature costanti
+    X_scaled = (X - X_min) / (X_max - X_min + 1e-8)  # Normalizzazione a [0,1]
+    X_scaled = X_scaled * (max_val - min_val) + min_val  # Riscalatura al range desiderato
+
+    return X_scaled, X_min, X_max
+
+
+def min_max_rescale(X, X_min, X_max, feature_range=(-1, 1)):
+    """
+    Riscalatura di nuovi dati usando i min/max pre-calcolati.
+
+    Args:
+        X (numpy.ndarray): Nuovi dati da riscalare.
+        X_min (numpy.ndarray): Valori minimi delle feature dal set di training.
+        X_max (numpy.ndarray): Valori massimi delle feature dal set di training.
+        feature_range (tuple): Intervallo di riscalatura desiderato (default: [-1, 1]).
+
+    Returns:
+        numpy.ndarray: Nuovi dati scalati.
+    """
+    min_val, max_val = feature_range
+
+    X_scaled = (X - X_min) / (X_max - X_min + 1e-8)
+    X_scaled = X_scaled * (max_val - min_val) + min_val
+
+    return X_scaled
 
 
 # ----------------------------CLASSIFICATION-----------------------------------
@@ -109,7 +153,6 @@ def one_hot_encode(columnData):
 # 4. split training data to X and Y
 # 5. split validation data to X and Y
 def preprocessClassificationData(data):
-
     # remove the id column
     data = removeId(data)
 
@@ -186,6 +229,7 @@ def customClassificationReport(trueValue, predictedValues):
         "F1: ",
         str(f1_score(trueValue, predictedValues, average="weighted", zero_division=0))[:4],
     )
+    return mean_squared_error(trueValue, predictedValues)
 
 
 # Accuracy scoring function
@@ -196,12 +240,12 @@ def accuracy_score_custom_for_grid_search(nn_model, X, y):
 
 ## function to perform cross validation for classification
 def custom_cross_validation_classification(
-    model,
-    X_tr,
-    y_tr,
-    epoch,
-    batch_size,
-    num_folds=3,
+        model,
+        X_tr,
+        y_tr,
+        epoch,
+        batch_size,
+        num_folds=5,
 ):
     """
     Perform stratified k-fold cross-validation
@@ -268,7 +312,7 @@ def custom_cross_validation_classification(
 
 
 def splitDataToTrainingAndValidationForRegression(
-    data,
+        data,
 ):
     """
     Split data into training and validation sets for multi-target regression.
@@ -362,6 +406,7 @@ def min_max_denormalization(predictions, data, target_columns):
 
     return denorm_predictions
 
+
 def denormalize_zscore(predictions, data, target_columns):
     """
     Denormalizes the predicted values back to the original scale using Z-score normalization.
@@ -383,6 +428,7 @@ def denormalize_zscore(predictions, data, target_columns):
         denorm_predictions[:, idx] = predictions[:, idx] * std + mean
 
     return denorm_predictions
+
 
 ## function to perform Zscore normalization
 def zscore_normalization(data, means=None, stds=None):
@@ -413,10 +459,10 @@ def zscore_normalization(data, means=None, stds=None):
 # 3. split the data to training and validation
 # 4. split training data to X and Y
 # 5. split validation data to X and Y
-def preprocessRegrData(data, standard,target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]):
+def preprocessRegrData(data, standard, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]):
     # remove the id column
     data = removeId(data)
-     # split the data to training and validation
+    # split the data to training and validation
     split_train_set, split_validation_set = splitDataToTrainingAndValidationForRegression(data)
     # use z-score normalization
     if standard:
@@ -446,6 +492,7 @@ def preprocessRegrData(data, standard,target_columns=["TARGET_x", "TARGET_y", "T
 
     return np.array(train_X), np.array(train_Y), np.array(validation_X), np.array(validation_Y)
 
+
 def preprocessRegressionTestData(data, test_X, standard=True, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z']):
     # remove the id column
     data = removeId(data)
@@ -459,18 +506,22 @@ def preprocessRegressionTestData(data, test_X, standard=True, target_columns=['T
 
     if standard:
         # Normalize the training set and get its means and stds
-        split_train_set[feature_columns], train_means, train_stds = zscore_normalization(split_train_set[feature_columns])
+        split_train_set[feature_columns], train_means, train_stds = zscore_normalization(
+            split_train_set[feature_columns])
 
         # Normalize the test set using the training set's means and stds
-        test_X[feature_columns], _, _ = zscore_normalization(test_X[feature_columns], means=train_means, stds=train_stds)
+        test_X[feature_columns], _, _ = zscore_normalization(test_X[feature_columns], means=train_means,
+                                                             stds=train_stds)
     else:
         # Normalize the training set and get its min and max values
         split_train_set[feature_columns], train_min, train_max = min_max_normalization(split_train_set[feature_columns])
 
         # Normalize the test set using the training set's min and max values
-        test_X[feature_columns], _, _ = min_max_normalization(test_X[feature_columns], min_vals=train_min, max_vals=train_max)
+        test_X[feature_columns], _, _ = min_max_normalization(test_X[feature_columns], min_vals=train_min,
+                                                              max_vals=train_max)
 
     return np.array(test_X)
+
 
 # custom function to give a full report for regression
 # takes the true values of the target , the predicted values, and the target columns names
@@ -479,7 +530,7 @@ def customRegressionReport(trueValues, predictedValues, target_names):
     # Print individual regression metrics
     mae = mean_absolute_error(trueValues, predictedValues)
     mse = mean_squared_error(trueValues, predictedValues)
-    rmse = mse**0.5
+    rmse = mse ** 0.5
     r2 = r2_score(trueValues, predictedValues)
     mee = np.mean(np.sqrt(np.sum(trueValues - predictedValues) ** 2, axis=1))
 
@@ -536,13 +587,13 @@ def customRegressionReport(trueValues, predictedValues, target_names):
 
 ### function to perform cross validation for regression
 def custom_cross_validation_regression(
-    model,
-    X_tr,
-    y_tr,
-    epoch,
-    batch_size,
-    num_folds=5,
-    metric=RegressionMetrics.MSE,
+        model,
+        X_tr,
+        y_tr,
+        epoch,
+        batch_size,
+        num_folds=5,
+        metric=RegressionMetrics.MSE,
 ):
     """
     Perform k-fold cross-validation for a regression model.
@@ -606,6 +657,7 @@ def custom_cross_validation_regression(
 
     # Return  the mean score and the fold scores
     return mean_score, fold_scores
+
 
 def save_predictions_to_csv(data, file_name):
     data = pd.DataFrame(data, columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])

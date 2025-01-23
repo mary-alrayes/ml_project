@@ -22,6 +22,7 @@ class RegressionMetrics(Enum):
 class InizializzationType(Enum):
     GAUSSIAN = "gaussian"
     XAVIER = "xavier"
+    RANDOM = "random"
 
 
 # types of problem

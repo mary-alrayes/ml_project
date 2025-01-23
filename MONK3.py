@@ -114,103 +114,92 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.1 / (10**i) for i in range(10)],
-        "momentum": [x / 100 for x in range(80, 90)],
-        "lambd": [x / 100000000 for x in range(1, 10)],
+        "learning_rate": [0.1],
+        "momentum": [0.9],
+        "lambd": [0.0],
+        "decay": [0.8],
+        "dropout": [0],
+        "batch_size": [5]
     }
+    # Best Parameters: {'learning_rate': 0.1, 'momentum': 0.9, 'lambd': 0.0, 'batch_size': 2}, Best Score: 1.0000
     # Best Parameters: {'learning_rate': 0.1, 'momentum': 0.8, 'lambd': 1e-08},
     # Initialize the Search class for grid search
-    search = Search(CustomNeuralNetwork, param_grid, accuracy_score_custom, activation_type=ActivationType.TANH,
-                    regularization_type=RegularizationType.L2, task_type=TaskType.CLASSIFICATION, nesterov=False,
-                    decay=0.0001)
+    search = Search(
+        model=CustomNeuralNetwork,
+        param_grid=param_grid,
+        activation_type=ActivationType.SIGMOID,
+        regularization_type=RegularizationType.L2,
+        inizialization=InizializzationType.XAVIER,
+        nesterov=False,
+        decay=0.0,
+        dropout=0.0
+    )
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search_classification(
-        X, y, epoch=100, batchSize=16, neurons=[4], output_size=1
+        X, y, epoch=200, neurons=[5], output_size=1,
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
-    nn3 = CustomNeuralNetwork(input_size=X.shape[1],
-                              hidden_layers=[2],
-                              output_size=1,
-                              activationType=ActivationType.TANH,
-                              learning_rate=best_params['learning_rate'],
-                              momentum=best_params['momentum'],
-                              lambd=best_params['lambd'],
-                              regularizationType=RegularizationType.L2,
-                              taskType=TaskType.CLASSIFICATION,
-                              nesterov=False,
-                              decay=0.0001
-                              )
     nn3 = CustomNeuralNetwork(
         input_size=X.shape[1],
-        hidden_layers=[4],
+        hidden_layers=[5],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],
         momentum=best_params["momentum"],
         lambd=best_params["lambd"],
-        regularizationType=RegularizationType.L1,
+        regularizationType=RegularizationType.L2,
         task_type=TaskType.CLASSIFICATION,
-        initialization=InizializzationType.GAUSSIAN,
-        dropout_rate=0.0
+        initialization=InizializzationType.XAVIER,
+        dropout_rate=best_params["dropout"],
+        decay=best_params["decay"],
+        nesterov=True
     )
 
-    # Train the network
-    history = nn3.fit(
-        X, y, monk3_validation_X, monk3_validation_Y, epochs=100, batch_size=16
+    # Unisci il training set e il validation set
+    X_final_train = np.vstack((monk3_train_X, monk3_validation_X))
+    Y_final_train = np.vstack((monk3_train_Y, monk3_validation_Y))
+
+    print(f"Final training data shape: {X_final_train.shape}")
+    print(f"Final training labels shape: {Y_final_train.shape}")
+
+    # Re-addestra la rete neurale sull'intero set di dati
+    history_final = nn3.fit(
+        X_final_train, Y_final_train, X_final_train, Y_final_train,  # Utilizzo di tutto il dataset
+        epochs=200, batch_size=best_params["batch_size"]
     )
 
-    # Plot a single graph with Loss and Training Accuracy
+    # Plot Training and Validation Loss (MSE)
     plt.figure()
-
-    # Plot Training Loss
-    plt.plot(
-        history["epoch"],
-        history["train_loss"],
-        label="Training Loss",
-        color="blue",
-        linestyle="-",
-    )
-
-    # Plot Training Accuracy
-    plt.plot(
-        history["epoch"],
-        history["train_acc"],
-        label="Training Accuracy",
-        color="orange",
-        linestyle="--",
-    )
-
-    # Plot Validation Loss
-    plt.plot(
-        history["epoch"],
-        history["val_loss"],
-        label="Validation Loss",
-        color="yellow",
-        linestyle="-",
-    )
-
-    # Plot Validation Accuracy
-    plt.plot(
-        history["epoch"],
-        history["val_acc"],
-        label="Validation Accuracy",
-        color="green",
-        linestyle="--",
-    )
-
-    # Configure the plot
-    plt.xlabel("Epochs")  # X-axis as the recorded epochs
-    plt.ylabel("Value")  # Shared y-axis label
-    plt.title("MONK3 - Training Loss and Accuracy Over Recorded Epochs")
+    plt.plot(history_final["epoch"], history_final["train_loss"], label="Training Loss (MSE)", color="red",
+             linestyle="-")
+    plt.plot(history_final["epoch"], history_final["val_loss"], label="Validation Loss (MSE)", color="blue",
+             linestyle="--")
+    plt.xlabel("Epochs")
+    plt.ylabel("Mean Squared Error")
+    plt.title("MONK3 - Final Training and Validation Loss Over Epochs")
     plt.legend()
     plt.grid(True)
-
-    # Display the plot
     plt.show()
+
+    # Plot Training and Validation Accuracy
+    plt.figure()
+    plt.plot(history_final["epoch"], history_final["train_acc"], label="Training Accuracy", color="red", linestyle="-")
+    plt.plot(history_final["epoch"], history_final["val_acc"], label="Validation Accuracy", color="blue",
+             linestyle="--")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
+    plt.title("MONK3 - Final Training and Validation Accuracy Over Epochs")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    # Validation predictions
+    print("Predicting validation set")
+    monk3_validation_nn_predictions = nn3.predict(monk3_validation_X)
+    customClassificationReport(monk3_validation_Y, monk3_validation_nn_predictions)
 
     # Validation predictions
     print("Predicting validation set")
@@ -267,4 +256,8 @@ if __name__ == "__main__":
     print(f"Train Y shape: {monk3_real_test_Y.shape}")
 
     monk3_real_test_predictions_nn = nn3.predict(monk3_real_test_X)
-    customClassificationReport(monk3_real_test_Y, monk3_real_test_predictions_nn)
+    mse_test = customClassificationReport(monk3_real_test_Y, monk3_real_test_predictions_nn)
+    mse_train = history_final['train_loss']
+    mse_train = np.mean(mse_train)
+
+    print(f"MSE(TR) : {mse_train:.10f}, MSE(TS): {mse_test:.10f}")

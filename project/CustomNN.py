@@ -51,12 +51,17 @@ class CustomNeuralNetwork:
         # Initialize weights
         if self.initialization == InizializzationType.GAUSSIAN:
             self.weights = [
-                self.gaussian_initialization((self.layers[i], self.layers[i + 1]), mean=0.0, std_dev=0.1, seed=62)
+                self.gaussian_initialization((self.layers[i], self.layers[i + 1]), mean=0.0, std_dev=0.1, seed=42)
                 for i in range(len(self.layers) - 1)
             ]
         elif self.initialization == InizializzationType.XAVIER:
             self.weights = [
-                self.xavier_initialization((self.layers[i], self.layers[i + 1]), seed=62)
+                self.xavier_initialization((self.layers[i], self.layers[i + 1]), seed=42)
+                for i in range(len(self.layers) - 1)
+            ]
+        elif self.initialization == InizializzationType.RANDOM:
+            self.weights = [
+                self.random_uniform_initialization((self.layers[i], self.layers[i + 1]), limit=0.1, seed=42)
                 for i in range(len(self.layers) - 1)
             ]
 
@@ -123,7 +128,7 @@ class CustomNeuralNetwork:
     """Generate a weight matrix using a Gaussian distribution."""
 
     @staticmethod
-    def gaussian_initialization(shape, mean=0.0, std_dev=0.01, seed=62):
+    def gaussian_initialization(shape, mean=0.0, std_dev=0.1, seed=62):
         if seed is not None:
             np.random.seed(seed)
 
@@ -150,6 +155,19 @@ class CustomNeuralNetwork:
 
         n_in, n_out = shape  # Ensure correct unpacking
         limit = np.sqrt(6 / (n_in + n_out))  # Xavier initialization range
+        return np.random.uniform(-limit, limit, size=shape)
+
+    @staticmethod
+    def random_uniform_initialization(shape, limit=0.1, seed=None):
+        """
+        Initialize weights randomly using a uniform distribution with an optional seed.
+        :param shape: Tuple specifying the shape of the weight matrix.
+        :param limit: Range limit for the random values.
+        :param seed: Seed value for reproducibility.
+        :return: Randomly initialized weight matrix.
+        """
+        if seed is not None:
+            np.random.seed(seed)
         return np.random.uniform(-limit, limit, size=shape)
 
     """ function to apply the appropriate activation function based on the passed parameter of the activation type"""
@@ -267,7 +285,7 @@ class CustomNeuralNetwork:
 
     """Train the neural network."""
 
-    def fit(self, X, y, X_val=None, y_val=None, epochs=1000, batch_size=-1, patience=50, seed=42):
+    def fit(self, X, y, X_val=None, y_val=None, epochs=1000, batch_size=-1, patience=100, seed=42):
         """Train the neural network.
         :param X_val: Validation input data.
         :param y_val: Validation target labels.
@@ -305,7 +323,7 @@ class CustomNeuralNetwork:
         for epoch in range(epochs):
             # Adjust learning rate using time-based decay
             if self.decay > 0:
-                self.learning_rate = self.initial_learning_rate * (1 / (1 + self.decay * epoch))
+                self.learning_rate = self.initial_learning_rate / (1 + self.decay * (epoch // 10))
 
             # Shuffle the data at the start of each epoch with fixed seed
             indices = np.random.permutation(X.shape[0])
@@ -380,12 +398,6 @@ class CustomNeuralNetwork:
             # Store metrics
             history["train_loss"].append(epoch_loss)
             history["epoch"].append(epoch)
-
-            # Print progress at key intervals
-            print(
-                f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, "
-                f"Best Val Loss: {best_val_loss:.4f}, Learning Rate: {self.learning_rate:.6f}"
-            )
 
         return history
 

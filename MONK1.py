@@ -1,17 +1,15 @@
 import numpy as np
 from matplotlib import pyplot as plt
-
-from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
-from sklearn.utils import resample
-from project.utility.Enum import RegularizationType, ActivationType, TaskType
+from project.CustomNN import CustomNeuralNetwork
+from project.utility.Enum import RegularizationType, ActivationType, TaskType, InizializzationType
 from project.utility.Search import Search
 from project.utility.utility import (
     one_hot_encode,
     customClassificationReport,
     removeId,
     preprocessClassificationData,
-    splitToFeaturesAndTargetClassification,
+    splitToFeaturesAndTargetClassification, min_max_scaling,
 )
 
 
@@ -27,18 +25,8 @@ if __name__ == "__main__":
     )
     # Drop the first column (not needed for training)
     monk1_train_data = monk1_train_data.drop(monk1_train_data.columns[0], axis=1)
-    # Rename columns according to dataset description
     monk1_train_data.rename(
-        columns={
-            1: "target",
-            2: "a1",
-            3: "a2",
-            4: "a3",
-            5: "a4",
-            6: "a5",
-            7: "a6",
-            8: "ID",
-        },
+        columns={1: "target", 2: "a1", 3: "a2", 4: "a3", 5: "a4", 6: "a5", 7: "a6", 8: "ID"},
         inplace=True,
     )
 
@@ -48,72 +36,46 @@ if __name__ == "__main__":
         sep=" ",
         header=None,
     )
-    # Drop the first column (not needed for testing)
     monk1_test_data = monk1_test_data.drop(monk1_test_data.columns[0], axis=1)
-    # Rename columns according to dataset description
     monk1_test_data.rename(
-        columns={
-            1: "target",
-            2: "a1",
-            3: "a2",
-            4: "a3",
-            5: "a4",
-            6: "a5",
-            7: "a6",
-            8: "ID",
-        },
+        columns={1: "target", 2: "a1", 3: "a2", 4: "a3", 5: "a4", 6: "a5", 7: "a6", 8: "ID"},
         inplace=True,
     )
 
-    # Print loaded data for verification
     print("MONK1")
     print("Train data")
     print(monk1_train_data.head())
     print("Test data")
     print(monk1_test_data.head())
 
-    # --------------------------------------------------MONK1-----------------------------------------------------------
+    # Preprocess train data
+    monk1_train_X, monk1_train_Y, monk1_validation_X, monk1_validation_Y = preprocessClassificationData(monk1_train_data)
 
-    # reshape train_X, train_Y, validation_X
-    monk1_train_X, monk1_train_Y, monk1_validation_X, monk1_validation_Y = (
-        preprocessClassificationData(monk1_train_data)
-    )
-
+    # Reshape inputs
     monk1_train_X = monk1_train_X.reshape(monk1_train_X.shape[0], -1)
     monk1_train_Y = monk1_train_Y.reshape(-1, 1)
-
-    monk1_validation_X = np.array(monk1_validation_X)
+    monk1_validation_X = np.array(monk1_validation_X).reshape(monk1_validation_X.shape[0], -1)
     monk1_validation_Y = np.array(monk1_validation_Y)
-    monk1_validation_X = monk1_validation_X.reshape(monk1_validation_X.shape[0], -1)
 
-    print(f"val X shape: {monk1_validation_X.shape}")
+    # Apply rescaling to training data
+    monk1_train_X, X_min, X_max = min_max_scaling(monk1_train_X, feature_range=(-1, 1))
+    monk1_validation_X = (monk1_validation_X - X_min) / (X_max - X_min + 1e-8)
+    monk1_validation_X = monk1_validation_X * (1 - (-1)) + (-1)
 
-    # reshape train_X, train_Y, validation_X
-    X = monk1_train_X.reshape(monk1_train_X.shape[0], -1)
-    y = monk1_train_Y.reshape(-1, 1)
-
-    monk1_validation_X = np.array(monk1_validation_X)
-    monk1_validation_Y = np.array(monk1_validation_Y)
-    monk1_validation_X = monk1_validation_X.reshape(monk1_validation_X.shape[0], -1)
-
-    print(f"train X shape: {X.shape[1]}")
-    print(
-        "Nomi delle colonne di X:",
-        X.columns if hasattr(X, "columns") else "X non è un DataFrame",
-    )
-
-    print(f"train Y shape: {y.shape}")
-
-    print(f"val X shape: {monk1_validation_X.shape}")
+    print(f"Riscalato train X shape: {monk1_train_X.shape}")
+    print(f"Riscalato val X shape: {monk1_validation_X.shape}")
 
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.1 / (10**i) for i in range(10)],
-        "momentum": [x / 100 for x in range(80, 90)],
+        "learning_rate": [0.1],
+        "momentum": [0.9],
         "lambd": [0.0],
+        "decay": [0.0],
+        "dropout": [0.0],
+        "batch_size": [5],
     }
-    # best params
-    # {'learning_rate': 0.1, 'momentum': 0.8, 'lambd': 0.0}, Best Score: 1.0000
+
+    print(f"Min X: {np.min(monk1_train_X)}, Max X: {np.max(monk1_train_X)}")
 
     # Initialize the Search class for grid search
     search = Search(
@@ -121,19 +83,23 @@ if __name__ == "__main__":
         param_grid=param_grid,
         activation_type=ActivationType.SIGMOID,
         regularization_type=RegularizationType.L2,
+        inizialization=InizializzationType.GAUSSIAN,
+        nesterov=False,
+        decay=0.0,
+        dropout=0.0
     )
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
     best_params, best_score = search.grid_search_classification(
-        X, y, epoch=200, batchSize=5, neurons=[3], output_size=1
+        monk1_train_X, monk1_train_Y, epoch=500, neurons=[4], output_size=1,
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
 
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
-        input_size=X.shape[1],
-        hidden_layers=[3],
+        input_size=monk1_train_X.shape[1],
+        hidden_layers=[4],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],
@@ -141,119 +107,79 @@ if __name__ == "__main__":
         lambd=best_params["lambd"],
         regularizationType=RegularizationType.L2,
         task_type=TaskType.CLASSIFICATION,
+        initialization=InizializzationType.GAUSSIAN,
+        dropout_rate=best_params["dropout"],
+        decay=best_params["decay"],
+        nesterov=True
     )
 
-    # Train the network
-    history = nn1.fit(
-        X, y, monk1_validation_X, monk1_validation_Y, epochs=200, batch_size=5
+    # Unisci il training set e il validation set
+    X_final_train = np.vstack((monk1_train_X, monk1_validation_X))
+    Y_final_train = np.vstack((monk1_train_Y, monk1_validation_Y))
+
+    print(f"Final training data shape: {X_final_train.shape}")
+    print(f"Final training labels shape: {Y_final_train.shape}")
+
+    # Re-addestra la rete neurale sull'intero set di dati
+    history_final = nn1.fit(
+        X_final_train, Y_final_train, X_final_train, Y_final_train,  # Utilizzo di tutto il dataset
+        epochs=500, batch_size=best_params["batch_size"]
     )
 
-    # Plot a single graph with Loss and Training Accuracy
+    # Plot Training and Validation Loss (MSE)
     plt.figure()
-
-    # Plot Training Loss
-    plt.plot(
-        history["epoch"],
-        history["train_loss"],
-        label="Training Loss",
-        color="blue",
-        linestyle="-",
-    )
-
-    # Plot Training Accuracy
-    plt.plot(
-        history["epoch"],
-        history["train_acc"],
-        label="Training Accuracy",
-        color="orange",
-        linestyle="--",
-    )
-
-    # Plot Validation Loss
-    plt.plot(
-        history["epoch"],
-        history["val_loss"],
-        label="Validation Loss",
-        color="yellow",
-        linestyle="-",
-    )
-
-    # Plot Validation Accuracy
-    plt.plot(
-        history["epoch"],
-        history["val_acc"],
-        label="Validation Accuracy",
-        color="green",
-        linestyle="--",
-    )
-
-    # Configure the plot
-    plt.xlabel("Epochs")  # X-axis as the recorded epochs
-    plt.ylabel("Value")  # Shared y-axis label
-    plt.title("MONK1 - Training Loss and Accuracy Over Recorded Epochs")
+    plt.plot(history_final["epoch"], history_final["train_loss"], label="Training Loss (MSE)", color="red",
+             linestyle="-")
+    plt.plot(history_final["epoch"], history_final["val_loss"], label="Validation Loss (MSE)", color="blue",
+             linestyle="--")
+    plt.xlabel("Epochs")
+    plt.ylabel("Mean Squared Error")
+    plt.title("MONK1 - Final Training and Validation Loss Over Epochs")
     plt.legend()
     plt.grid(True)
+    plt.show()
 
-    # Display the plot
+    # Plot Training and Validation Accuracy
+    plt.figure()
+    plt.plot(history_final["epoch"], history_final["train_acc"], label="Training Accuracy", color="red", linestyle="-")
+    plt.plot(history_final["epoch"], history_final["val_acc"], label="Validation Accuracy", color="blue",
+             linestyle="--")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
+    plt.title("MONK1 - Final Training and Validation Accuracy Over Epochs")
+    plt.legend()
+    plt.grid(True)
     plt.show()
 
     # Validation predictions
     print("Predicting validation set")
-    plt.figure()
     monk1_validation_nn_predictions = nn1.predict(monk1_validation_X)
     customClassificationReport(monk1_validation_Y, monk1_validation_nn_predictions)
 
     # -------------------------------------------------TEST------------------------------------------------------------
+
     print("Real Testing")
 
-    # Rimuovi l'ID dal dataset
+    # Remove ID from test data
     monk1_test_data = removeId(monk1_test_data)
 
-    # Applicazione del One-Hot Encoding
-    columns_to_encode = monk1_test_data.columns[1:]  # Escludi la colonna 'target'
-    encoded_columns = {}
-    category_mappings = {}
+    # Apply one-hot encoding to test data
+    columns_to_encode = monk1_test_data.columns[1:]  # Exclude 'target'
+    encoded_columns = {col: pd.DataFrame(one_hot_encode(monk1_test_data[col])[0]) for col in columns_to_encode}
+    one_hot_test_monk1 = pd.concat([monk1_test_data["target"], pd.concat(encoded_columns.values(), axis=1)], axis=1)
 
-    for col in columns_to_encode:
-        one_hot_encoded, mapping = one_hot_encode(monk1_test_data[col])
-        encoded_columns[col] = pd.DataFrame(
-            one_hot_encoded
-        )  # Assicurati che sia un DataFrame
-        category_mappings[col] = mapping
-
-    # Concatenazione delle colonne codificate con la colonna target
-    encoded_columns_df = pd.concat(encoded_columns.values(), axis=1)
-    one_hot_test_monk1 = pd.concat(
-        [monk1_test_data["target"], encoded_columns_df], axis=1
-    )
-
-    # Verifica che tutte le colonne abbiano la stessa lunghezza
-    assert all(
-        encoded_columns_df[col].shape[0] == len(one_hot_test_monk1)
-        for col in encoded_columns_df.columns
-    ), "Le colonne codificate non hanno la stessa lunghezza!"
-
-    monk1_real_test_X, monk1_real_test_Y = splitToFeaturesAndTargetClassification(
-        one_hot_test_monk1
-    )
-
-    # Conversione a numpy array
-    try:
-        monk1_real_test_X = np.array(
-            monk1_real_test_X, dtype=np.float64
-        )  # Assicurati che siano numerici
-    except ValueError as e:
-        print("Errore nella conversione dei dati di Features in array numpy:", e)
-
+    monk1_real_test_X, monk1_real_test_Y = splitToFeaturesAndTargetClassification(one_hot_test_monk1)
+    monk1_real_test_X = np.array(monk1_real_test_X, dtype=np.float64)
+    monk1_real_test_X = (monk1_real_test_X - X_min) / (X_max - X_min + 1e-8)
+    monk1_real_test_X = monk1_real_test_X * (1 - (-1)) + (-1)
     monk1_real_test_Y = np.array(monk1_real_test_Y, dtype=np.float64)
 
-    if monk1_real_test_X.ndim == 1:
-        monk1_real_test_X = monk1_real_test_X.reshape(-1, 1)
+    print(f"Test X shape: {monk1_real_test_X.shape}")
+    print(f"Test Y shape: {monk1_real_test_Y.shape}")
 
-    # Stampa delle dimensioni per debug
-    print(f"Train X shape: {monk1_real_test_X.shape}")
-    print(f"Train Y shape: {monk1_real_test_Y.shape}")
-
-    plt.figure()
     monk1_real_test_predictions_nn = nn1.predict(monk1_real_test_X)
-    customClassificationReport(monk1_real_test_Y, monk1_real_test_predictions_nn)
+    mse_test = customClassificationReport(monk1_real_test_Y, monk1_real_test_predictions_nn)
+    mse_train = history_final['train_loss']
+    mse_train = np.mean(mse_train)
+
+    print(f"MSE(TR) : {mse_train:.10f}, MSE(TS): {mse_test:.10f}")
