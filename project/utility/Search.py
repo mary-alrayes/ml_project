@@ -1,4 +1,5 @@
 import random
+import pandas as pd
 from itertools import product
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
@@ -114,7 +115,7 @@ class Search:
             epoch=100,
             batchSize=16,
             output_size=3,
-            top_n_models=3 # top n models to be selected for ensemble
+            top_n_models=5 # top n models to be selected for ensemble
     ):
         best_score_regr = float("inf")
         best_params = None
@@ -128,23 +129,26 @@ class Search:
             self.param_grid["hidden_layers"],
             self.param_grid["dropout"],
             self.param_grid["decay"],
+            self.param_grid["initialization"],
+            self.param_grid["activationType"],
+            self.param_grid["nesterov"]
         )
 
         for params in param_combinations:
-            learning_rate, momentum, lambd, hidden_layers, dropout, decay = params
+            learning_rate, momentum, lambd, hidden_layers, dropout, decay, initialization, activationType, nesterov = params
             # Initialize a new model instance with current parameters
             model = self.model(
                 input_size=X.shape[1],
                 hidden_layers=hidden_layers,
                 output_size=output_size,
-                activationType=self.activation_type,
+                activationType=activationType,
                 learning_rate=learning_rate,
                 momentum=momentum,
                 lambd=lambd,
                 regularizationType=self.regularization_type,
                 task_type=TaskType.REGRESSION,
-                initialization=self.initialization,
-                nesterov=self.nesterov,
+                initialization=initialization,
+                nesterov=nesterov,
                 decay=decay,
                 dropout_rate=dropout
             )
@@ -159,8 +163,9 @@ class Search:
             score = mean_score
             # Log the parameters and score for debugging
             print(
-                f"Grid Search: LR={learning_rate}, Momentum={momentum}, Lambda={lambd}, "
-                f"Dropout={dropout}, Decay={decay}, Hidden Layers={hidden_layers}, Score={mean_score:.4f}"
+                f"Grid Search: LR={learning_rate}, Momentum={momentum}, Lambda={lambd}, initialization={initialization}, "
+                f"Dropout={dropout}, Decay={decay}, Hidden Layers={hidden_layers}, Score={mean_score:.4f}, "
+                f"Activation={activationType}, Nesterov={nesterov}"
             )
             print("-----------------------------------------------------")
 
@@ -183,12 +188,39 @@ class Search:
                     "hidden_layers": hidden_layers,
                     "dropout": dropout,
                     "decay": decay,
+                    "initialization": initialization,
+                    "activationType": activationType,
+                    "nesterov": nesterov
                 }
         best_score = best_score_regr
         # Ensure best_params and best_score are consistent
         if best_params is not None:
             print(f"\nBest Parameters: {best_params}, Best Score: {best_score:.4f}")
-            print("Top Medels for Ensemble: ", [(m, s) for m, s in top_models])
+            #print("Top Medels for Ensemble: ", [(m, s) for m, s in top_models])
+            # Extract the relevant information from top_models
+            model_details = [
+                {
+                    "Model Index": i + 1,
+                    "Loss": s,
+                    "Hidden Layers": m.hidden_layers,
+                    "Learning Rate": m.learning_rate,
+                    "Momentum": m.momentum,
+                    "Lambda": m.lambd,
+                    "Decay": m.decay,
+                    "Dropout": m.dropout_rate,
+                    "activationType": m.activationType.name,
+                    "Initialization": m.initialization.name,
+                    "Nesterov": m.nesterov,
+                }
+                for i, (m, s) in enumerate(top_models)
+            ]
+
+            # Convert to a DataFrame for a tabular format
+            df_models = pd.DataFrame(model_details)
+            # Save to a JSON file
+            json_file = "top_models_ensemble.json"
+            df_models.to_json(json_file, orient="records", indent=4)
+            print(f"Top models saved to {json_file}")
         else:
             print("\nNo valid parameters found during grid search.")
 

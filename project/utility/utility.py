@@ -701,26 +701,6 @@ def custom_cross_validation_regression(
     # Return  the mean score and the fold scores
     return mean_score, fold_scores
 
-def averaging_ensemble(models, X):
-    """
-    Perform an averaging ensemble for regression models.
-
-    Parameters:
-    - models: List of trained regression models.
-    - X: Input data.
-
-    Returns:
-    - predictions: Averaged predictions from the ensemble.
-    """
-
-    # Get predictions from all models
-    predictions = [model.predict(X) for model in models]
-
-    # Average of the predictions
-    averaged_predictions = np.mean(predictions, axis=0)
-
-    return averaged_predictions
-
 # save the results in a csv file
 def save_predictions_to_csv(data, file_name):
     data = pd.DataFrame(data, columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])

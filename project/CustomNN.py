@@ -29,9 +29,10 @@ class CustomNeuralNetwork:
         activationType: Type of Activation (relu, sigmoid)
         learning_rate: Learning rate for gradient descent.
         """
-
+        self.hidden_layers = hidden_layers
         self.activationType = activationType
         self.regularizationType = regularizationType
+        self.initialization = initialization
         self.task_type = task_type
         self.nesterov = nesterov
         self.learning_rate = learning_rate
@@ -46,7 +47,7 @@ class CustomNeuralNetwork:
         # list containing the number of neurons in each layer
         self.layers = [input_size] + hidden_layers + [output_size]
 
-        print(self.layers)
+        #print(self.layers)
 
         # Initialize weights
         if self.initialization == InitializationType.GAUSSIAN:
@@ -416,6 +417,12 @@ class CustomNeuralNetwork:
             # Store metrics
             history["train_loss"].append(epoch_loss)
             history["epoch"].append(epoch)
+
+            # Print progress at key intervals
+            """print(
+                f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, "
+                f"Best Val Loss: {best_val_loss:.4f}, Learning Rate: {self.learning_rate:.6f}"
+            )"""
 
         return history
 
