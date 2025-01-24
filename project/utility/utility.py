@@ -240,6 +240,7 @@ def customClassificationReport(trueValue, predictedValues):
         :4
         ],
     )
+    return mean_squared_error(trueValue, predictedValues)
 
 
 # Accuracy scoring function
