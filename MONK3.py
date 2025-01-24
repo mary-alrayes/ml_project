@@ -139,10 +139,10 @@ if __name__ == "__main__":
     # ---------------------------------------------------
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.2],
-        "momentum": [0.7],
-        "lambd": [0.0],
-        "decay": [0.0],
+        "learning_rate": [0.1],
+        "momentum": [0.8],
+        "lambd": [0.005],
+        "decay": [0.5],
         "dropout": [0.0],
         "batch_size": [4],
     }
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         param_grid=param_grid,
         activation_type=ActivationType.SIGMOID,
         regularization_type=RegularizationType.L2,
-        initialization=InitializationType.XAVIER,
+        initialization=InitializationType.GAUSSIAN,
         nesterov=False,
         decay=0.0,
         dropout=0.0,
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         lambd=best_params["lambd"],
         regularizationType=RegularizationType.L2,
         task_type=TaskType.CLASSIFICATION,
-        initialization=InitializationType.XAVIER,
+        initialization=InitializationType.GAUSSIAN,
         dropout_rate=best_params["dropout"],
         decay=best_params["decay"],
         nesterov=True,

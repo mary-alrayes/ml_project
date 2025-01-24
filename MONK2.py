@@ -139,8 +139,8 @@ if __name__ == "__main__":
     # ---------------------------------------------------
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.2],
-        "momentum": [0.7],
+        "learning_rate": [0.5],
+        "momentum": [0.8],
         "lambd": [0.0],
         "decay": [0.0],
         "dropout": [0.0],
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         param_grid=param_grid,
         activation_type=ActivationType.SIGMOID,
         regularization_type=RegularizationType.L2,
-        initialization=InitializationType.XAVIER,
+        initialization=InitializationType.GAUSSIAN,
         nesterov=False,
         decay=0.0,
         dropout=0.0,
@@ -167,7 +167,7 @@ if __name__ == "__main__":
         search.grid_search_classification(
             monk2_train_X,
             monk2_train_Y,
-            epoch=500,
+            epoch=200,
             neurons=[3],
             output_size=1,
         )
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=monk2_train_X.shape[1],
-        hidden_layers=[3],
+        hidden_layers=[4],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         lambd=best_params["lambd"],
         regularizationType=RegularizationType.L2,
         task_type=TaskType.CLASSIFICATION,
-        initialization=InitializationType.XAVIER,
+        initialization=InitializationType.GAUSSIAN,
         dropout_rate=best_params["dropout"],
         decay=best_params["decay"],
         nesterov=True,

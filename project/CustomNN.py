@@ -69,7 +69,7 @@ class CustomNeuralNetwork:
                 )
                 for i in range(len(self.layers) - 1)
             ]
-        elif self.initialization == InizializzationType.RANDOM:
+        elif self.initialization == InitializationType.RANDOM:
             self.weights = [
                 self.random_uniform_initialization(
                     (self.layers[i], self.layers[i + 1]), limit=0.1, seed=42
