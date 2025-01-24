@@ -53,7 +53,7 @@ def min_max_scaling(X, feature_range=(-1, 1)):
     # Evitare divisione per zero nel caso di feature costanti
     X_scaled = (X - X_min) / (X_max - X_min + 1e-8)  # Normalizzazione a [0,1]
     X_scaled = (
-        X_scaled * (max_val - min_val) + min_val
+            X_scaled * (max_val - min_val) + min_val
     )  # Riscalatura al range desiderato
 
     return X_scaled, X_min, X_max
@@ -156,7 +156,6 @@ def one_hot_encode(columnData):
 # 4. split training data to X and Y
 # 5. split validation data to X and Y
 def preprocessClassificationData(data):
-
     # remove the id column
     data = removeId(data)
 
@@ -238,7 +237,7 @@ def customClassificationReport(trueValue, predictedValues):
     print(
         "F1: ",
         str(f1_score(trueValue, predictedValues, average="weighted", zero_division=0))[
-            :4
+        :4
         ],
     )
 
@@ -249,7 +248,6 @@ def accuracy_score_custom_for_grid_search(nn_model, X, y):
     return np.mean(predictions == y)
 
 
-## function to perform cross validation for classification
 def custom_cross_validation_classification(
     model,
     X_tr,
@@ -258,46 +256,21 @@ def custom_cross_validation_classification(
     batch_size,
     num_folds=5,
 ):
-    """
-    Perform stratified k-fold cross-validation
-    we are performing cross validation (k-fold) on (X_train, y_train) set.
-
-    Parameters:
-    - model: model object.
-    - X_tr: data.
-    - y_tr: target.
-    - epoch: number of epochs for the training
-    - batch_size: the size of the batch size. Default is 5.
-    - num_folds: Number of cross-validation folds.
-
-    Returns:
-    - mean_accuracy: Mean accuracy across all folds.
-    - fold_accuracies: List of accuracy scores for each fold.
-
-    """
-
     X_tr, y_tr = np.array(X_tr), np.array(y_tr)
 
-    # Initialize stratified k-fold
     skf = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=42)
 
-    # an array to store the accuracies for each fold
     fold_accuracies = []
     fold_history = []
-    mean_history = {}
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(X_tr, y_tr)):
         print(f"Fold {fold + 1}/{num_folds}")
 
-        # Split (X_train,y_train) data to training and testing for each fold
         X_train, X_test = X_tr[train_idx], X_tr[test_idx]
         y_train, y_test = y_tr[train_idx], y_tr[test_idx]
-        print("train size: ", len(X_train))
-        print("test size: ", len(X_test))
 
         model.reset_weights()
 
-        # Train the model on the training data
         history = model.fit(
             X_train,
             y_train.reshape(-1, 1),
@@ -307,41 +280,41 @@ def custom_cross_validation_classification(
             batch_size=batch_size,
         )
 
-        # Evaluate the model on the test set for each fold
         predictions = model.predict(X_test)
-        # Calculate accuracy for the fold
         accuracy = np.mean(predictions.flatten() == y_test.flatten())
 
-        print(f"Fold {fold + 1} Accuracy: {accuracy:.4f}")
-        print("--------------------------------------------")
-
-        # append the fold accuracy to fold_accuracies
         fold_accuracies.append(accuracy)
-
-        # append the fold history to fold_histories
         fold_history.append(history)
 
-    # Calculate mean accuracy
-    mean_accuracy = np.mean(fold_accuracies)
-
-    # calculate the mean history
+    # Estrazione delle metriche
     all_val_losses = [history["val_loss"] for history in fold_history]
     all_val_accuracies = [history["val_acc"] for history in fold_history]
-    # all_epoch = [history["epoch"] for history in fold_history]
 
-    mean_history["val_loss"] = np.mean([np.mean(vl) for vl in all_val_losses])
-    mean_history["val_acc"] = np.mean([np.mean(va) for va in all_val_accuracies])
-    mean_history["epoch"] = [history["epoch"] for history in fold_history]
+    # Trova la lunghezza minima tra le epoche delle fold
+    min_epochs = min(len(vl) for vl in all_val_losses)
 
-    # Return mean accuracy and fold accuracies
+    # Troncamento per uniformare le lunghezze
+    all_val_losses = [vl[:min_epochs] for vl in all_val_losses]
+    all_val_accuracies = [va[:min_epochs] for va in all_val_accuracies]
+
+    # Calcolo della media su tutte le epoche
+    mean_history = {
+        "val_loss": np.mean(np.array(all_val_losses), axis=0).tolist(),
+        "val_acc": np.mean(np.array(all_val_accuracies), axis=0).tolist(),
+        "epoch": list(range(1, min_epochs + 1))
+    }
+
+    mean_accuracy = np.mean(fold_accuracies)
+
     return mean_accuracy, fold_accuracies, mean_history
+
 
 
 # ----------------------------REGRESSION-----------------------------------
 
 
 def splitDataToTrainingAndValidationForRegression(
-    data,
+        data,
 ):
     """
     Split data into training and validation sets for multi-target regression.
@@ -381,7 +354,7 @@ def splitDataToTrainingAndValidationForRegression(
 
 
 def splitDataToTrainingAndAssessmentForRegression(
-    data,
+        data,
 ):
     """
     Split data into training and assessment sets for multi-target regression.
@@ -472,7 +445,7 @@ def min_max_denormalization(predictions, data, target_columns):
         min_value = target_data[target_column].min()
         max_value = target_data[target_column].max()
         denorm_predictions[:, idx] = (
-            predictions[:, idx] * (max_value - min_value) + min_value
+                predictions[:, idx] * (max_value - min_value) + min_value
         )
 
     return denorm_predictions
@@ -531,7 +504,7 @@ def zscore_normalization(data, means=None, stds=None):
 # 4. split training data to X and Y
 # 5. split validation data to X and Y
 def preprocessRegrData(
-    data, standard, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
+        data, standard, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
 ):
     # remove the id column
     data = removeId(data)
@@ -606,7 +579,7 @@ def preprocessRegrData(
 
 
 def preprocessRegressionTestData(
-    data, test_X, standard=True, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
+        data, test_X, standard=True, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
 ):
     # remove the id column
     test_X = removeId(test_X)
@@ -645,7 +618,7 @@ def customRegressionReport(trueValues, predictedValues, target_names):
     # Print individual regression metrics
     mae = mean_absolute_error(trueValues, predictedValues)
     mse = mean_squared_error(trueValues, predictedValues)
-    rmse = mse**0.5
+    rmse = mse ** 0.5
     r2 = r2_score(trueValues, predictedValues)
     mee = np.mean(np.sqrt(np.sum((trueValues - predictedValues) ** 2, axis=1)))
 
@@ -702,13 +675,13 @@ def customRegressionReport(trueValues, predictedValues, target_names):
 
 ### function to perform cross validation for regression
 def custom_cross_validation_regression(
-    model,
-    X_tr,
-    y_tr,
-    epoch,
-    batch_size,
-    num_folds=5,
-    metric=RegressionMetrics.MSE,
+        model,
+        X_tr,
+        y_tr,
+        epoch,
+        batch_size,
+        num_folds=5,
+        metric=RegressionMetrics.MSE,
 ):
     """
     Perform k-fold cross-validation for a regression model.

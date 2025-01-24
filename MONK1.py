@@ -19,7 +19,6 @@ from project.utility.utility import (
     min_max_scaling,
 )
 
-
 if __name__ == "__main__":
     monk1_train = "monk/monks-1.train"
     monk1_test = "monk/monks-1.test"
@@ -79,18 +78,11 @@ if __name__ == "__main__":
     # Reshape inputs
     monk1_train_X = monk1_train_X.reshape(monk1_train_X.shape[0], -1)
     monk1_train_Y = monk1_train_Y.reshape(-1, 1)
-    # monk1_validation_X = np.array(monk1_validation_X).reshape(
-    #     monk1_validation_X.shape[0], -1
-    # )
-    # monk1_validation_Y = np.array(monk1_validation_Y)
 
     # Apply rescaling to training data
     monk1_train_X, X_min, X_max = min_max_scaling(monk1_train_X, feature_range=(-1, 1))
-    # monk1_validation_X = (monk1_validation_X - X_min) / (X_max - X_min + 1e-8)
-    # monk1_validation_X = monk1_validation_X * (1 - (-1)) + (-1)
 
     print(f"Riscalato train X shape: {monk1_train_X.shape}")
-    # print(f"Riscalato val X shape: {monk1_validation_X.shape}")
 
     # --------------------------------------------------Preprocessing Test--------------------
 
@@ -148,7 +140,7 @@ if __name__ == "__main__":
     # Define the parameter grid
     param_grid = {
         "learning_rate": [0.2],
-        "momentum": [0.8],
+        "momentum": [0.7],
         "lambd": [0.0],
         "decay": [0.0],
         "dropout": [0.0],
@@ -199,18 +191,13 @@ if __name__ == "__main__":
         nesterov=True,
     )
 
-    # Unisci il training set e il validation set
-    # X_final_train = np.vstack((monk1_train_X, monk1_validation_X))
-    # Y_final_train = np.vstack((monk1_train_Y, monk1_validation_Y))
-
-    # print(f"Final training data shape: {X_final_train.shape}")
-    # print(f"Final training labels shape: {Y_final_train.shape}")
+    epoch = max(best_history_validation["epoch"])
 
     # Re-addestra la rete neurale sull'intero set di dati
     history_final = nn1.fit(
         X=monk1_train_X,
         y=monk1_train_Y,
-        epochs=500,
+        epochs=epoch,
         batch_size=best_params["batch_size"],
     )
 
@@ -260,38 +247,9 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.show()
 
-    # Validation predictions
-    # print("Predicting validation set")
-    # monk1_validation_nn_predictions = nn1.predict(monk1_validation_X)
-    # customClassificationReport(monk1_validation_Y, monk1_validation_nn_predictions)
-
     # -------------------------------------------------TEST------------------------------------------------------------
 
     print("Real Testing")
-
-    # # Remove ID from test data
-    # monk1_test_data = removeId(monk1_test_data)
-
-    # # Apply one-hot encoding to test data
-    # columns_to_encode = monk1_test_data.columns[1:]  # Exclude 'target'
-    # encoded_columns = {
-    #     col: pd.DataFrame(one_hot_encode(monk1_test_data[col])[0])
-    #     for col in columns_to_encode
-    # }
-    # one_hot_test_monk1 = pd.concat(
-    #     [monk1_test_data["target"], pd.concat(encoded_columns.values(), axis=1)], axis=1
-    # )
-
-    # monk1_real_test_X, monk1_real_test_Y = splitToFeaturesAndTargetClassification(
-    #     one_hot_test_monk1
-    # )
-    # monk1_real_test_X = np.array(monk1_real_test_X, dtype=np.float64)
-    # monk1_real_test_X = (monk1_real_test_X - X_min) / (X_max - X_min + 1e-8)
-    # monk1_real_test_X = monk1_real_test_X * (1 - (-1)) + (-1)
-    # monk1_real_test_Y = np.array(monk1_real_test_Y, dtype=np.float64)
-
-    # print(f"Test X shape: {monk1_real_test_X.shape}")
-    # print(f"Test Y shape: {monk1_real_test_Y.shape}")
 
     monk1_real_test_predictions_nn = nn1.predict(monk1_real_test_X)
     mse_test = customClassificationReport(
@@ -300,4 +258,4 @@ if __name__ == "__main__":
     mse_train = history_final["train_loss"]
     mse_train = np.mean(mse_train)
 
-    # print(f"MSE(TR) : {mse_train}, MSE(TS): {mse_test}")
+    print(f"MSE(TR) : {mse_train}, MSE(TS): {mse_test}")
