@@ -319,22 +319,25 @@ class CustomNeuralNetwork:
 
     """Train the neural network."""
 
+    import numpy as np
+
     def fit(
-        self,
-        X,
-        y,
-        X_val=None,
-        y_val=None,
-        epochs=1000,
-        batch_size=-1,
-        patience=50,
-        seed=42,
+            self,
+            X,
+            y,
+            X_val=None,
+            y_val=None,
+            epochs=1000,
+            batch_size=-1,
+            patience=50,
+            seed=42,
     ):
-        """Train the neural network.
-        :param X_val: Validation input data.
-        :param y_val: Validation target labels.
+        """Train the neural network with mini-batch gradient descent.
+
         :param X: Training input data.
         :param y: Training target labels.
+        :param X_val: Validation input data.
+        :param y_val: Validation target labels.
         :param epochs: Number of epochs to train.
         :param batch_size: Size of each mini-batch. Use -1 for full-batch training.
         :param patience: Number of epochs with no improvement to wait before early stopping.
@@ -344,7 +347,14 @@ class CustomNeuralNetwork:
         # Fix seed for reproducibility
         np.random.seed(seed)
 
-        # Store loss and accuracy for each epoch
+        # Default batch size to full dataset if not provided
+        if batch_size == -1 or batch_size > X.shape[0]:
+            batch_size = X.shape[0]
+
+        # Calculate the number of batches per epoch
+        num_batches = X.shape[0] // batch_size + (X.shape[0] % batch_size != 0)
+
+        # Initialize history tracking
         if self.task_type == TaskType.CLASSIFICATION:
             history = {
                 "train_loss": [],
@@ -362,10 +372,6 @@ class CustomNeuralNetwork:
                 "val_mee": [],
             }
 
-        # Full-batch training if batch_size == -1
-        if batch_size == -1:
-            batch_size = X.shape[0]
-
         # Early stopping variables
         best_val_loss = float("inf")
         patience_counter = 0
@@ -373,62 +379,64 @@ class CustomNeuralNetwork:
         for epoch in range(epochs):
             # Adjust learning rate using time-based decay
             if self.decay > 0:
-                self.learning_rate = self.initial_learning_rate / (
-                    1 + self.decay * (epoch // 10)
-                )
+                self.learning_rate = self.initial_learning_rate / (1 + self.decay * (epoch // 10))
 
-            # Shuffle the data at the start of each epoch with fixed seed
+            # Shuffle the dataset at the beginning of each epoch
             indices = np.random.permutation(X.shape[0])
             X_shuffled = X[indices]
             y_shuffled = y[indices]
 
             epoch_loss = 0
-            for i in range(0, X.shape[0], batch_size):
-                # Select the mini-batch
-                X_batch = X_shuffled[i : i + batch_size]
-                y_batch = y_shuffled[i : i + batch_size]
+
+            for i in range(num_batches):
+                # Define batch start and end indices
+                start_idx = i * batch_size
+                end_idx = min(start_idx + batch_size, X.shape[0])
+
+                # Extract mini-batch
+                X_batch = X_shuffled[start_idx:end_idx]
+                y_batch = y_shuffled[start_idx:end_idx]
 
                 # Forward and Backward Propagation
                 self.forward(X_batch, training=True)
                 self.backward(X_batch, y_batch)
 
+                # Compute batch loss
                 batch_loss = np.mean((self.afterActivationOutput[-1] - y_batch) ** 2)
 
-                # Apply L1 or L2 regularization based on the chosen type
+                # Apply regularization (L1 or L2)
                 if self.regularizationType == RegularizationType.L1:
                     batch_loss += self.lambd * self.regularization_l1()
-                else:
+                elif self.regularizationType == RegularizationType.L2:
                     batch_loss += self.lambd * self.regularization_l2()
 
-                epoch_loss += batch_loss * len(X_batch)  # Weighted sum of batch losses
+                epoch_loss += batch_loss
 
-            # Normalize epoch loss
-            epoch_loss /= X.shape[0]
+            # Normalize epoch loss by the number of batches
+            epoch_loss /= num_batches
 
+            # Validation loss calculation
             if X_val is not None and y_val is not None:
                 predicted_val = self.predict(X_val)
                 val_loss = np.mean((predicted_val - y_val) ** 2)
+
                 if self.regularizationType == RegularizationType.L1:
                     val_loss += self.lambd * self.regularization_l1()
-                else:
+                elif self.regularizationType == RegularizationType.L2:
                     val_loss += self.lambd * self.regularization_l2()
 
-                # Early stopping condition
+                # Early stopping check
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
-                    patience_counter = (
-                        0  # Reset patience counter if validation improves
-                    )
+                    patience_counter = 0  # Reset patience counter if improvement
                 else:
                     patience_counter += 1  # Increment patience counter
 
                 if patience_counter >= patience:
-                    print(
-                        f"Early stopping at epoch {epoch + 1}, best validation loss: {best_val_loss:.4f}"
-                    )
+                    print(f"Early stopping at epoch {epoch + 1}, best validation loss: {best_val_loss:.4f}")
                     break
 
-            # Calculate accuracy for classification or MEE for regression
+            # Calculate performance metrics
             if self.task_type == TaskType.CLASSIFICATION:
                 train_predictions = self.predict(X)
                 train_acc = np.mean(train_predictions == y)
@@ -442,28 +450,21 @@ class CustomNeuralNetwork:
                     history["val_loss"].append(val_loss)
             else:
                 train_predictions = self.predict(X)
-                train_mee = np.mean(
-                    np.sqrt(np.sum((y - train_predictions) ** 2, axis=1))
-                )  # MEE calculation
+                train_mee = np.mean(np.sqrt(np.sum((y - train_predictions) ** 2, axis=1)))
                 history["train_mee"].append(train_mee)
 
                 if X_val is not None and y_val is not None:
                     val_predictions = self.predict(X_val)
-                    val_mee = np.mean(
-                        np.sqrt(np.sum((y_val - val_predictions) ** 2, axis=1))
-                    )  # RMSE calculation
+                    val_mee = np.mean(np.sqrt(np.sum((y_val - val_predictions) ** 2, axis=1)))
                     history["val_mee"].append(val_mee)
                     history["val_loss"].append(val_loss)
 
-            # Store metrics
+            # Store loss history
             history["train_loss"].append(epoch_loss)
             history["epoch"].append(epoch)
 
-            # Print progress at key intervals
-            """print(
-                f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, "
-                f"Best Val Loss: {best_val_loss:.4f}, Learning Rate: {self.learning_rate:.6f}"
-            )"""
+            # Print progress
+            print(f"Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss:.4f}, Best Val Loss: {best_val_loss:.4f}")
 
         return history
 

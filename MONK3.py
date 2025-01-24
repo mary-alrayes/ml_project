@@ -139,12 +139,12 @@ if __name__ == "__main__":
     # ---------------------------------------------------
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.1],
+        "learning_rate": [0.01],
         "momentum": [0.8],
-        "lambd": [0.005],
+        "lambd": [0.0],
         "decay": [0.5],
         "dropout": [0.0],
-        "batch_size": [4],
+        "batch_size": [1],
     }
 
     print(f"Min X: {np.min(monk3_train_X)}, Max X: {np.max(monk3_train_X)}")
@@ -167,8 +167,8 @@ if __name__ == "__main__":
         search.grid_search_classification(
             monk3_train_X,
             monk3_train_Y,
-            epoch=500,
-            neurons=[3],
+            epoch=200,
+            neurons=[5],
             output_size=1,
         )
     )
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=monk3_train_X.shape[1],
-        hidden_layers=[3],
+        hidden_layers=[5],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],

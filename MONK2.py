@@ -139,12 +139,12 @@ if __name__ == "__main__":
     # ---------------------------------------------------
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.5],
+        "learning_rate": [0.1],
         "momentum": [0.8],
         "lambd": [0.0],
         "decay": [0.0],
         "dropout": [0.0],
-        "batch_size": [4],
+        "batch_size": [2],
     }
 
     print(f"Min X: {np.min(monk2_train_X)}, Max X: {np.max(monk2_train_X)}")
