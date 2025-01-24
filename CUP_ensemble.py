@@ -7,7 +7,7 @@ from sklearn.utils import resample
 from sklearn.metrics import mean_squared_error
 from project.utility.Enum import RegularizationType, ActivationType, TaskType, InitializationType
 from project.utility.Search import Search
-from project.utility.utility import (customRegressionReport, preprocessRegrData, save_predictions_to_csv, 
+from project.utility.utilityRegression import (customRegressionReport, preprocessRegrData, save_predictions_to_csv, 
                                         denormalize_zscore, preprocessRegressionTestData)
 
 if __name__ == "__main__":
@@ -66,12 +66,11 @@ if __name__ == "__main__":
     print("train shape: ", train_data.shape, "\n train: \n", train_data.head())
     print("test shape: \n", test_data.shape, "\n test: \n", test_data.head())
 
-    train_set, train_X, train_Y, validation_X, validation_Y, assessment_X, assessment_Y = preprocessRegrData(
+    train_set, train_X, train_Y, assessment_X, assessment_Y = preprocessRegrData(
         train_data, standard=True, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
     )
     print("train_set\n: ", train_set)
     print("train_X\n: ", train_X.shape, "train_Y\n: ", train_Y.shape)
-    print("validation_X\n: ", validation_X.shape, "validation_Y\n:  ", validation_Y.shape)
     
     #reshape train_X, train_Y, validation_X  
     X_train = train_X
@@ -82,15 +81,15 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        'learning_rate': [0.001, 0.005, 0.01, 0.05], # Learning rate values
-        'momentum': [0.8, 0.85, 0.9], # Momentum values
-        'lambd': [0.001, 0.005, 0.01, 0.05], # Regularization lambda values
-        'hidden_layers': [[x, y] for x in range(20, 35) for y in range(30, 40)],   # Number of neurons in the hidden layer
+        'learning_rate': [0.001],#[0.001, 0.005, 0.01], #[0.001, 0.005, 0.01, 0.05], # Learning rate values
+        'momentum': [0.85, 0.9], #[0.8, 0.85, 0.9], # Momentum values
+        'lambd': [0.005],#[0.001, 0.005, 0.01], #[0.001, 0.005, 0.01, 0.05], # Regularization lambda values
+        'hidden_layers': [[24,27], [30,40], [40,35], [34, 42]], #[[20,35], [34,37], [30,40], [28, 34], [25,32]], #[[x, y] for x in range(20, 35) for y in range(30, 40)],   # Number of neurons in the hidden layer
         'dropout': [0.0], #[x/10 for x in range(1, 10)],  # Dropout rate values
-        'decay': [0.0, 0.001, 0.002, 0.003],  # Decay values
-        'initialization': [InitializationType.XAVIER, InitializationType.HE, InitializationType.GAUSSIAN],  # Initialization values
-        'nesterov': [True, False],  # Nesterov values
-        'activationType': [ActivationType.RELU, ActivationType.ELU],  # Activation values
+        'decay': [0.0, 0.001], #[0.0, 0.001, 0.002, 0.003],  # Decay values
+        'initialization': [InitializationType.XAVIER, InitializationType.HE], #, InitializationType.GAUSSIAN],  # Initialization values
+        'nesterov': [False, True], #[True, False],  # Nesterov values
+        'activationType': [ActivationType.RELU] #, ActivationType.ELU],  # Activation values
     }
 
     # Initialize the Search class for grid search
@@ -101,7 +100,7 @@ if __name__ == "__main__":
 
     # Perform grid search on the learning rate
     print("Performing Grid Search...")
-    best_params, best_score, top_models = search.grid_search_regression(
+    best_params, best_score, top_models, best_history_validation = search.grid_search_regression(
         X_train, y_train, epoch=200, output_size=3, batchSize=32, top_n_models=10
     )
     print("Best Parameters:\n ", best_params, "Best Score: ", best_score)
@@ -121,8 +120,11 @@ if __name__ == "__main__":
                               initialization=best_params['initialization'],
                               dropout_rate=best_params['dropout']
                               )
+    
+    epoch = max(best_history_validation['epoch'])
+    
     # Train the network
-    history = nn.fit(X_train, y_train, X_val=validation_X, y_val=validation_Y, epochs=200, batch_size=32)
+    history = nn.fit(X_train, y_train, epochs=epoch, batch_size=32)
 
     # Plot graph with Loss(MSE)
     plt.figure()
@@ -131,12 +133,12 @@ if __name__ == "__main__":
     plt.plot(history['epoch'], history['train_loss'], label='Training Loss (MSE)', color='blue', linestyle='-')
 
     # Plot Validation Loss
-    plt.plot(history['epoch'], history['val_loss'], label='Validation Loss (MSE)', color='green', linestyle='-')
+    plt.plot(best_history_validation['epoch'], best_history_validation['val_loss'], label='Validation Loss (MSE)', color='green', linestyle='-')
 
     # Configure the plot
     plt.xlabel("Epochs")  # X-axis as the recorded epochs
     plt.ylabel("Value")  # Shared y-axis label
-    plt.title("Training and Validation Loss Over Recorded Epochs (MSE)")  # Plot title
+    plt.title("Training and Validation Loss Over Recorded Epochs (MSE) - K-Fold")  # Plot title
     plt.legend()
     plt.grid(True)
 
@@ -150,33 +152,21 @@ if __name__ == "__main__":
     plt.plot(history['epoch'], history['train_mee'], label='Training Loss (MEE)', color='orange', linestyle='--')
     
     # Plot Validation Accuracy
-    plt.plot(history['epoch'], history['val_mee'], label='Validation Loss (MEE)', color='red', linestyle='--')
+    plt.plot(best_history_validation['epoch'], best_history_validation['val_mee'], label='Validation Loss (MEE)', color='red', linestyle='--')
 
     # Configure the plot
     plt.xlabel("Epochs")  # X-axis as the recorded epochs
     plt.ylabel("Value")  # Shared y-axis label
-    plt.title("Training and Validation Loss Over Recorded Epochs (MEE)")  # Plot title
+    plt.title("Training and Validation Loss Over Recorded Epochs (MEE) - K-Fold")  # Plot title
     plt.legend()
     plt.grid(True)
 
     # Display the plot
     plt.show()
 
-    # Validation predictions
-    validation_nn_predictions = nn.predict(validation_X)
-    print('\nPredicting denormalized validation set')
-    #Denormalize the validation predictions
-    validation_Y_denorm = denormalize_zscore(validation_Y, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
-    validation_nn_pred_denorm = denormalize_zscore(validation_nn_predictions, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
-    customRegressionReport(validation_Y_denorm, validation_nn_pred_denorm, target_names=['TARGET_x', 'TARGET_y', 'TARGET_z'])
-
-
-#-------------------------------Assessment Set Predictions---------------------------------
-    train_set_X = np.vstack((train_X, validation_X))
-    train_set_Y = np.vstack((train_Y, validation_Y))
-    
+#-------------------------Ensemble Prediction--------------------------------
     # Number of repeats for each model of the ensemble
-    n_reapeats = 8
+    n_reapeats = 6
 
     # Initialize an empty list to store predictions for each model
     ensemble_predictions = []
@@ -187,7 +177,7 @@ if __name__ == "__main__":
         for repeat in range(n_reapeats): 
             # Create a new instance of the model
             retrained_model = CustomNeuralNetwork(
-                    input_size=train_set_X.shape[1],
+                    input_size=train_X.shape[1],
                     hidden_layers=top_model.hidden_layers,
                     output_size=3,
                     activationType=top_model.activationType,
@@ -202,7 +192,7 @@ if __name__ == "__main__":
                     dropout_rate=top_model.dropout_rate
             )
             #Train the model
-            history = retrained_model.fit(train_set_X, train_set_Y,  X_val=assessment_X, y_val=assessment_Y, epochs=200, batch_size=32)
+            history = retrained_model.fit(train_X, train_Y, X_val=assessment_X, y_val=assessment_Y, early_stopping=False, epochs=epoch, batch_size=32)
             # Predict on the assessment set
             predictions = retrained_model.predict(assessment_X)
             reapeated_predictions.append(predictions)
@@ -260,26 +250,24 @@ if __name__ == "__main__":
     ensemble_denorm_predictions = denormalize_zscore(ensemble_mean_predictions, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     assessment_Y_denorm = denormalize_zscore(assessment_Y, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     # Evaluate the ensemble
-    print("\n Retrained Ensemble Denormalized Regression Report:")
+    print("\nRetrained Ensemble Denormalized Regression Report:")
     customRegressionReport(assessment_Y_denorm, ensemble_denorm_predictions, target_names=['TARGET_x', 'TARGET_y', 'TARGET_z'])
 
     #Training loss (MSE e MEE)
-    print("Training loss: ")
-    train_nn_pred = retrained_model.predict(train_set_X)
-    train_y_denorm = denormalize_zscore(train_set_Y, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
+    print("\nTraining loss: ")
+    train_nn_pred = retrained_model.predict(train_X)
+    train_y_denorm = denormalize_zscore(train_Y, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     train_nn_pred_denorm = denormalize_zscore(train_nn_pred, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     customRegressionReport(train_y_denorm, train_nn_pred_denorm, target_names=['TARGET_x', 'TARGET_y', 'TARGET_z'])
 
+
 #-----------------------------Test set prediction---------------------------
-    train_final_set_X = np.vstack((train_set_X, assessment_X))
-    train_final_set_Y = np.vstack((train_set_Y, assessment_Y))
+    train_final_set_X = np.vstack((train_X, assessment_X))
+    train_final_set_Y = np.vstack((train_Y, assessment_Y))
 
     test_X = preprocessRegressionTestData(train_set, test_data, standard=True, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     print("test_X: ", test_X.shape)
     print('Predicting test set')
-    
-   # Number of repeats for each model of the ensemble
-    n_final_reapeats = 8
 
     # Initialize an empty list to store predictions for each model
     ensemble_final_predictions = []
@@ -287,27 +275,11 @@ if __name__ == "__main__":
     # Retrain each top model on the combined training + validation set
     for top_model in top_models:
         reapeated_final_predictions = []
-        for repeat in range(n_final_reapeats): 
-            # Create a new instance of the model
-            retrained_final_model = CustomNeuralNetwork(
-                    input_size=train_final_set_X.shape[1],
-                    hidden_layers=top_model.hidden_layers,
-                    output_size=3,
-                    activationType=top_model.activationType,
-                    learning_rate=top_model.learning_rate,
-                    momentum=top_model.momentum,
-                    lambd=top_model.lambd,
-                    regularizationType=top_model.regularizationType,
-                    task_type=TaskType.REGRESSION,
-                    nesterov=top_model.nesterov,
-                    decay=top_model.decay,
-                    initialization=top_model.initialization,
-                    dropout_rate=top_model.dropout_rate
-            )
+        for repeat in range(n_reapeats): 
             #Train the model
-            history = retrained_final_model.fit(train_final_set_X, train_final_set_Y, epochs=200, batch_size=32)
+            history = retrained_model.fit(train_final_set_X, train_final_set_Y, early_stopping=False, epochs=epoch, batch_size=32)
             # Predict on the assessment set
-            predictions = retrained_final_model.predict(test_X)
+            predictions = retrained_model.predict(test_X)
             reapeated_final_predictions.append(predictions)
         
         #Compute the average prediction for the model
@@ -325,4 +297,4 @@ if __name__ == "__main__":
     ensemble_denorm_final_predictions = denormalize_zscore(ensemble_mean_final_predictions, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
 
     # Save the predictions to a CSV file
-    save_predictions_to_csv(ensemble_denorm_final_predictions, file_name="ensemble_predictions.csv")
+    save_predictions_to_csv(ensemble_denorm_final_predictions, file_name="ensemble_predictions_init.csv")

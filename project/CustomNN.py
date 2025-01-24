@@ -65,7 +65,7 @@ class CustomNeuralNetwork:
         elif self.initialization == InitializationType.XAVIER:
             self.weights = [
                 self.xavier_initialization(
-                    (self.layers[i], self.layers[i + 1]), seed=42
+                    (self.layers[i], self.layers[i + 1]), seed=np.random.randint(0, 1e6)
                 )
                 for i in range(len(self.layers) - 1)
             ]
@@ -78,7 +78,7 @@ class CustomNeuralNetwork:
             ]
         elif self.initialization == InitializationType.HE:
             self.weights = [
-                self.he_initialization((self.layers[i], self.layers[i + 1]), seed=62)
+                self.he_initialization((self.layers[i], self.layers[i + 1]), seed=np.random.randint(0, 1e6))
                 for i in range(len(self.layers) - 1)
             ]
 
@@ -164,7 +164,7 @@ class CustomNeuralNetwork:
     """Initialize weights using Xavier Initialization with optional seed for reproducibility."""
 
     @staticmethod
-    def xavier_initialization(shape, seed=62):
+    def xavier_initialization(shape, seed=None):
 
         if seed is not None:
             np.random.seed(seed)  # Set the seed for reproducibility
@@ -177,7 +177,7 @@ class CustomNeuralNetwork:
         return np.random.uniform(-limit, limit, size=shape)
 
     @staticmethod
-    def he_initialization(shape, seed=62):
+    def he_initialization(shape, seed=None):
         if seed is not None:
             np.random.seed(seed)
 
@@ -319,25 +319,23 @@ class CustomNeuralNetwork:
 
     """Train the neural network."""
 
-    import numpy as np
-
     def fit(
-            self,
-            X,
-            y,
-            X_val=None,
-            y_val=None,
-            epochs=1000,
-            batch_size=-1,
-            patience=50,
-            seed=42,
+        self,
+        X,
+        y,
+        X_val=None,
+        y_val=None,
+        epochs=1000,
+        early_stopping=True,
+        batch_size=-1,
+        patience=50,
+        seed=42,
     ):
-        """Train the neural network with mini-batch gradient descent.
-
-        :param X: Training input data.
-        :param y: Training target labels.
+        """Train the neural network.
         :param X_val: Validation input data.
         :param y_val: Validation target labels.
+        :param X: Training input data.
+        :param y: Training target labels.
         :param epochs: Number of epochs to train.
         :param batch_size: Size of each mini-batch. Use -1 for full-batch training.
         :param patience: Number of epochs with no improvement to wait before early stopping.
@@ -425,16 +423,17 @@ class CustomNeuralNetwork:
                 elif self.regularizationType == RegularizationType.L2:
                     val_loss += self.lambd * self.regularization_l2()
 
-                # Early stopping check
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
-                    patience_counter = 0  # Reset patience counter if improvement
-                else:
-                    patience_counter += 1  # Increment patience counter
-
-                if patience_counter >= patience:
-                    print(f"Early stopping at epoch {epoch + 1}, best validation loss: {best_val_loss:.4f}")
-                    break
+                if early_stopping:
+                    # Early stopping check
+                    if val_loss < best_val_loss:
+                        best_val_loss = val_loss
+                        patience_counter = 0  # Reset patience counter if improvement
+                    else:
+                        patience_counter += 1  # Increment patience counter
+    
+                    if patience_counter >= patience:
+                        print(f"Early stopping at epoch {epoch + 1}, best validation loss: {best_val_loss:.4f}")
+                        break
 
             # Calculate performance metrics
             if self.task_type == TaskType.CLASSIFICATION:

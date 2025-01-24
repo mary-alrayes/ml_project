@@ -7,7 +7,7 @@ from sklearn.utils import resample
 from sklearn.metrics import mean_squared_error
 from project.utility.Enum import RegularizationType, ActivationType, TaskType, InitializationType
 from project.utility.Search import Search
-from project.utility.utility import (customRegressionReport, preprocessRegrData, save_predictions_to_csv, 
+from project.utility.utilityClassification import (customRegressionReport, preprocessRegrData, save_predictions_to_csv, 
                                         denormalize_zscore, min_max_denormalization, preprocessRegressionTestData,
                                         averaging_ensemble)
 

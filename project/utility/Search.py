@@ -3,10 +3,8 @@ import pandas as pd
 from itertools import product
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
-from project.utility.utility import (
-    custom_cross_validation_classification,
-    custom_cross_validation_regression,
-)
+from project.utility.utilityClassification import custom_cross_validation_classification
+from project.utility.utilityRegression import custom_cross_validation_regression
 from project.utility.Enum import TaskType, InitializationType
 
 """
@@ -136,6 +134,7 @@ class Search:
         best_score_regr = float("inf")
         best_params = None
         top_models = []  # to store top n models
+        best_history = {}
 
         # Generate all combination of hyperparameters using itertools.product
         param_combinations = product(
@@ -179,7 +178,7 @@ class Search:
                 dropout_rate=dropout,
             )
             # Train the model
-            mean_score, scores = custom_cross_validation_regression(
+            mean_score, scores, historyValidation = custom_cross_validation_regression(
                 model=model,
                 X_tr=X,
                 y_tr=y,
@@ -218,6 +217,7 @@ class Search:
                     "activationType": activationType,
                     "nesterov": nesterov,
                 }
+                best_history = historyValidation
         best_score = best_score_regr
         # Ensure best_params and best_score are consistent
         if best_params is not None:
@@ -244,13 +244,13 @@ class Search:
             # Convert to a DataFrame for a tabular format
             df_models = pd.DataFrame(model_details)
             # Save to a JSON file
-            json_file = "top_models_ensemble.json"
+            json_file = "top_models_ensemble_init.json"
             df_models.to_json(json_file, orient="records", indent=4)
             print(f"Top models saved to {json_file}")
         else:
             print("\nNo valid parameters found during grid search.")
 
-        return best_params, best_score, [m for m, s in top_models]
+        return best_params, best_score, [m for m, s in top_models], best_history
 
     def holdoutValidation(
         self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1
