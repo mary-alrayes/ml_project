@@ -1,4 +1,9 @@
-from project.utility.Enum import ActivationType, RegularizationType, TaskType, InitializationType
+from project.utility.Enum import (
+    ActivationType,
+    RegularizationType,
+    TaskType,
+    InitializationType,
+)
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 
@@ -19,7 +24,7 @@ class CustomNeuralNetwork:
         dropout_rate=0.0,
         nesterov=False,
         initialization=InitializationType.GAUSSIAN,
-        decay=0
+        decay=0,
     ):
         """
         Initialize the neural network.
@@ -47,26 +52,32 @@ class CustomNeuralNetwork:
         # list containing the number of neurons in each layer
         self.layers = [input_size] + hidden_layers + [output_size]
 
-        #print(self.layers)
+        # print(self.layers)
 
         # Initialize weights
         if self.initialization == InitializationType.GAUSSIAN:
             self.weights = [
-                self.gaussian_initialization((self.layers[i], self.layers[i + 1]), mean=0.0, std_dev=0.1, seed=42)
+                self.gaussian_initialization(
+                    (self.layers[i], self.layers[i + 1]), mean=0.0, std_dev=0.1, seed=42
+                )
                 for i in range(len(self.layers) - 1)
             ]
         elif self.initialization == InitializationType.XAVIER:
             self.weights = [
-                self.xavier_initialization((self.layers[i], self.layers[i + 1]), seed=42)
+                self.xavier_initialization(
+                    (self.layers[i], self.layers[i + 1]), seed=42
+                )
                 for i in range(len(self.layers) - 1)
             ]
         elif self.initialization == InizializzationType.RANDOM:
             self.weights = [
-                self.random_uniform_initialization((self.layers[i], self.layers[i + 1]), limit=0.1, seed=42)
+                self.random_uniform_initialization(
+                    (self.layers[i], self.layers[i + 1]), limit=0.1, seed=42
+                )
                 for i in range(len(self.layers) - 1)
             ]
         elif self.initialization == InitializationType.HE:
-            self.weights = [    
+            self.weights = [
                 self.he_initialization((self.layers[i], self.layers[i + 1]), seed=62)
                 for i in range(len(self.layers) - 1)
             ]
@@ -116,11 +127,13 @@ class CustomNeuralNetwork:
         return (x > 0).astype(float)
 
     """ELU activation function."""
+
     @staticmethod
     def elu(x, alpha=1.0):
         return np.where(x > 0, x, alpha * np.exp(x) - 1)
 
     """Derivative of ELU for backpropagation."""
+
     @staticmethod
     def elu_derivative(x, alpha=1.0):
         return np.where(x > 0, 1, alpha * np.exp(x))
@@ -162,7 +175,7 @@ class CustomNeuralNetwork:
         n_in, n_out = shape  # Ensure correct unpacking
         limit = np.sqrt(6 / (n_in + n_out))  # Xavier initialization range
         return np.random.uniform(-limit, limit, size=shape)
-    
+
     @staticmethod
     def he_initialization(shape, seed=62):
         if seed is not None:
@@ -233,9 +246,11 @@ class CustomNeuralNetwork:
 
                 # Apply dropout during training only, not in inference
                 if training and self.dropout_rate > 0.0:
-                    dropout_mask = (np.random.rand(*a.shape) > self.dropout_rate).astype(float)
+                    dropout_mask = (
+                        np.random.rand(*a.shape) > self.dropout_rate
+                    ).astype(float)
                     a *= dropout_mask  # Drop neurons
-                    a /= (1 - self.dropout_rate)  # Scale to maintain expected value
+                    a /= 1 - self.dropout_rate  # Scale to maintain expected value
 
             # append the results
             self.beforeActivationOutput.append(z)
@@ -304,7 +319,17 @@ class CustomNeuralNetwork:
 
     """Train the neural network."""
 
-    def fit(self, X, y, X_val=None, y_val=None, epochs=1000, batch_size=-1, patience=50, seed=42):
+    def fit(
+        self,
+        X,
+        y,
+        X_val=None,
+        y_val=None,
+        epochs=1000,
+        batch_size=-1,
+        patience=50,
+        seed=42,
+    ):
         """Train the neural network.
         :param X_val: Validation input data.
         :param y_val: Validation target labels.
@@ -329,20 +354,28 @@ class CustomNeuralNetwork:
                 "val_acc": [],
             }
         else:
-            history = {'train_loss': [], 'train_mee': [], 'epoch': [], 'val_loss': [], 'val_mee': []}
+            history = {
+                "train_loss": [],
+                "train_mee": [],
+                "epoch": [],
+                "val_loss": [],
+                "val_mee": [],
+            }
 
         # Full-batch training if batch_size == -1
         if batch_size == -1:
             batch_size = X.shape[0]
 
         # Early stopping variables
-        best_val_loss = float('inf')
+        best_val_loss = float("inf")
         patience_counter = 0
 
         for epoch in range(epochs):
             # Adjust learning rate using time-based decay
             if self.decay > 0:
-                self.learning_rate = self.initial_learning_rate / (1 + self.decay * (epoch // 10))
+                self.learning_rate = self.initial_learning_rate / (
+                    1 + self.decay * (epoch // 10)
+                )
 
             # Shuffle the data at the start of each epoch with fixed seed
             indices = np.random.permutation(X.shape[0])
@@ -352,8 +385,8 @@ class CustomNeuralNetwork:
             epoch_loss = 0
             for i in range(0, X.shape[0], batch_size):
                 # Select the mini-batch
-                X_batch = X_shuffled[i: i + batch_size]
-                y_batch = y_shuffled[i: i + batch_size]
+                X_batch = X_shuffled[i : i + batch_size]
+                y_batch = y_shuffled[i : i + batch_size]
 
                 # Forward and Backward Propagation
                 self.forward(X_batch, training=True)
@@ -383,12 +416,16 @@ class CustomNeuralNetwork:
                 # Early stopping condition
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
-                    patience_counter = 0  # Reset patience counter if validation improves
+                    patience_counter = (
+                        0  # Reset patience counter if validation improves
+                    )
                 else:
                     patience_counter += 1  # Increment patience counter
 
                 if patience_counter >= patience:
-                    print(f"Early stopping at epoch {epoch + 1}, best validation loss: {best_val_loss:.4f}")
+                    print(
+                        f"Early stopping at epoch {epoch + 1}, best validation loss: {best_val_loss:.4f}"
+                    )
                     break
 
             # Calculate accuracy for classification or MEE for regression
@@ -405,14 +442,18 @@ class CustomNeuralNetwork:
                     history["val_loss"].append(val_loss)
             else:
                 train_predictions = self.predict(X)
-                train_mee = np.mean(np.sqrt(np.sum((y - train_predictions) ** 2, axis=1)))  # MEE calculation
-                history['train_mee'].append(train_mee)
+                train_mee = np.mean(
+                    np.sqrt(np.sum((y - train_predictions) ** 2, axis=1))
+                )  # MEE calculation
+                history["train_mee"].append(train_mee)
 
                 if X_val is not None and y_val is not None:
                     val_predictions = self.predict(X_val)
-                    val_mee = np.mean(np.sqrt(np.sum((y_val - val_predictions) ** 2, axis=1)))  # RMSE calculation
-                    history['val_mee'].append(val_mee)
-                    history['val_loss'].append(val_loss)
+                    val_mee = np.mean(
+                        np.sqrt(np.sum((y_val - val_predictions) ** 2, axis=1))
+                    )  # RMSE calculation
+                    history["val_mee"].append(val_mee)
+                    history["val_loss"].append(val_loss)
 
             # Store metrics
             history["train_loss"].append(epoch_loss)
@@ -425,6 +466,52 @@ class CustomNeuralNetwork:
             )"""
 
         return history
+
+    def reset_weights(self):
+        """
+        Reset the neural network weights and biases to their initial values.
+        This function is useful for cross-validation, ensuring that each fold starts from scratch.
+        """
+        if self.initialization == InitializationType.GAUSSIAN:
+            self.weights = [
+                self.gaussian_initialization(
+                    (self.layers[i], self.layers[i + 1]), mean=0.0, std_dev=0.1, seed=42
+                )
+                for i in range(len(self.layers) - 1)
+            ]
+        elif self.initialization == InitializationType.XAVIER:
+            self.weights = [
+                self.xavier_initialization(
+                    (self.layers[i], self.layers[i + 1]), seed=42
+                )
+                for i in range(len(self.layers) - 1)
+            ]
+        elif self.initialization == InitializationType.RANDOM:
+            self.weights = [
+                self.random_uniform_initialization(
+                    (self.layers[i], self.layers[i + 1]), limit=0.1, seed=42
+                )
+                for i in range(len(self.layers) - 1)
+            ]
+        elif self.initialization == InitializationType.HE:
+            self.weights = [
+                self.he_initialization((self.layers[i], self.layers[i + 1]), seed=42)
+                for i in range(len(self.layers) - 1)
+            ]
+
+        # Reinitialize biases
+        self.biases = [
+            np.zeros((1, self.layers[i + 1])) for i in range(len(self.layers) - 1)
+        ]
+
+        # Reset previous updates (momentum)
+        self.previous_updates_w = [np.zeros_like(w) for w in self.weights]
+        self.previous_updates_b = [np.zeros_like(b) for b in self.biases]
+
+        # Reset learning rate to the initial value (in case of learning rate decay)
+        self.learning_rate = self.initial_learning_rate
+
+        print("Model weights and biases have been reset.")
 
     def predict(self, X, training=False):
         """Make predictions using the trained model."""

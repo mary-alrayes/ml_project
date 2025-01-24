@@ -13,10 +13,20 @@ from project.utility.Enum import TaskType, InitializationType
 Class to perform manual grid search and random search
 """
 
+
 class Search:
 
-    def __init__(self, model, param_grid, activation_type, regularization_type, initialization, nesterov, decay,
-                 dropout):
+    def __init__(
+        self,
+        model,
+        param_grid,
+        activation_type,
+        regularization_type,
+        initialization,
+        nesterov,
+        decay,
+        dropout,
+    ):
         self.model = model
         self.param_grid = param_grid
         self.activation_type = activation_type
@@ -29,15 +39,16 @@ class Search:
     ## function to perform grid search for classification
 
     def grid_search_classification(
-            self,
-            X,
-            y,
-            epoch=100,
-            neurons=[3],
-            output_size=1,
+        self,
+        X,
+        y,
+        epoch=100,
+        neurons=[3],
+        output_size=1,
     ):
         best_score_class = -float("inf")
         best_params = None
+        best_history = {}
 
         # Generate all th combination fro hyperparameters using itertools.product
         param_combinations = product(
@@ -46,7 +57,7 @@ class Search:
             self.param_grid["lambd"],
             self.param_grid["dropout"],
             self.param_grid["decay"],
-            self.param_grid["batch_size"]
+            self.param_grid["batch_size"],
         )
 
         for params in param_combinations:
@@ -66,16 +77,18 @@ class Search:
                 initialization=self.initialization,
                 nesterov=self.nesterov,
                 decay=decay,
-                dropout_rate=dropout
+                dropout_rate=dropout,
             )
 
             # Perform cross-validation to get the average accuracy
-            mean_accuracy, accuracies = custom_cross_validation_classification(
-                model=model,
-                X_tr=X,
-                y_tr=y,
-                epoch=epoch,
-                batch_size=batch_size,
+            mean_accuracy, accuracies, historyValidation = (
+                custom_cross_validation_classification(
+                    model=model,
+                    X_tr=X,
+                    y_tr=y,
+                    epoch=epoch,
+                    batch_size=batch_size,
+                )
             )
 
             score = mean_accuracy
@@ -87,7 +100,7 @@ class Search:
             )
             print("-----------------------------------------------------")
 
-            # Update the best parameters if it finds a better score 
+            # Update the best parameters if it finds a better score
             if score > best_score_class:
                 best_score_class = score
                 best_params = {
@@ -98,28 +111,31 @@ class Search:
                     "decay": decay,
                     "batch_size": batch_size,
                 }
+                best_history = historyValidation
 
         # Validate the best parameters and best score
         if best_params is not None:
-            print(f"\nBest Parameters: {best_params}, Best Score: {best_score_class:.4f}")
+            print(
+                f"\nBest Parameters: {best_params}, Best Score: {best_score_class:.4f}"
+            )
         else:
             print("\nNo valid parameters found during grid search.")
 
-        return best_params, best_score_class
+        return best_params, best_score_class, best_history
 
     # function to perform grid search for regression
     def grid_search_regression(
-            self,
-            X,
-            y,
-            epoch=100,
-            batchSize=16,
-            output_size=3,
-            top_n_models=5 # top n models to be selected for ensemble
+        self,
+        X,
+        y,
+        epoch=100,
+        batchSize=16,
+        output_size=3,
+        top_n_models=5,  # top n models to be selected for ensemble
     ):
         best_score_regr = float("inf")
         best_params = None
-        top_models = [] # to store top n models
+        top_models = []  # to store top n models
 
         # Generate all combination of hyperparameters using itertools.product
         param_combinations = product(
@@ -131,11 +147,21 @@ class Search:
             self.param_grid["decay"],
             self.param_grid["initialization"],
             self.param_grid["activationType"],
-            self.param_grid["nesterov"]
+            self.param_grid["nesterov"],
         )
 
         for params in param_combinations:
-            learning_rate, momentum, lambd, hidden_layers, dropout, decay, initialization, activationType, nesterov = params
+            (
+                learning_rate,
+                momentum,
+                lambd,
+                hidden_layers,
+                dropout,
+                decay,
+                initialization,
+                activationType,
+                nesterov,
+            ) = params
             # Initialize a new model instance with current parameters
             model = self.model(
                 input_size=X.shape[1],
@@ -150,7 +176,7 @@ class Search:
                 initialization=initialization,
                 nesterov=nesterov,
                 decay=decay,
-                dropout_rate=dropout
+                dropout_rate=dropout,
             )
             # Train the model
             mean_score, scores = custom_cross_validation_regression(
@@ -172,7 +198,7 @@ class Search:
             # Save top n models for ensemble
             if len(top_models) < top_n_models:
                 top_models.append((model, score))
-                top_models.sort(key=lambda x: x[1]) # sort by score (ascending)
+                top_models.sort(key=lambda x: x[1])  # sort by score (ascending)
 
             elif score < top_models[-1][1]:
                 top_models[-1] = (model, score)
@@ -190,13 +216,13 @@ class Search:
                     "decay": decay,
                     "initialization": initialization,
                     "activationType": activationType,
-                    "nesterov": nesterov
+                    "nesterov": nesterov,
                 }
         best_score = best_score_regr
         # Ensure best_params and best_score are consistent
         if best_params is not None:
             print(f"\nBest Parameters: {best_params}, Best Score: {best_score:.4f}")
-            #print("Top Medels for Ensemble: ", [(m, s) for m, s in top_models])
+            # print("Top Medels for Ensemble: ", [(m, s) for m, s in top_models])
             # Extract the relevant information from top_models
             model_details = [
                 {
@@ -227,7 +253,7 @@ class Search:
         return best_params, best_score, [m for m, s in top_models]
 
     def holdoutValidation(
-            self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1
+        self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1
     ):
         best_score = -float("inf")
         best_params = None
@@ -246,7 +272,7 @@ class Search:
                         lambd=lambd,
                         regularizationType=self.regularization_type,
                         nesterov=self.nesterov,
-                        decay=self.decay
+                        decay=self.decay,
                     )
 
                     model.fit(X_train, y_train, epochs=epoch, batch_size=8)
@@ -271,15 +297,25 @@ class Search:
         return best_params, best_score
 
     import random
+
     def random_grid_search(
-    self, X, y, n_iter=10, epoch=100, neurons=[1], output_size=1, validation_func=None
-):
+        self,
+        X,
+        y,
+        n_iter=10,
+        epoch=100,
+        neurons=[1],
+        output_size=1,
+        validation_func=None,
+    ):
         best_score = -float("inf")
         best_params = None
 
         # Randomly sample parameter combinations
         param_combinations = list(product(*self.param_grid.values()))
-        sampled_combinations = random.sample(param_combinations, min(n_iter, len(param_combinations)))
+        sampled_combinations = random.sample(
+            param_combinations, min(n_iter, len(param_combinations))
+        )
 
         for params in sampled_combinations:
             param_dict = dict(zip(self.param_grid.keys(), params))
@@ -312,7 +348,6 @@ class Search:
 
         print(f"\nBest Parameters: {best_params}, Best Score: {best_score:.4f}")
         return best_params, best_score
-
 
     """def random_grid_search(
             self, X, y, n_iter=10, epoch=100, neurons=[1], output_size=1
