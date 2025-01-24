@@ -9,8 +9,7 @@ from project.utility.Enum import (
     InitializationType,
 )
 from project.utility.Search import Search
-from project.utility.utility import (
-    custom_cross_validation_classification,
+from project.utility.utilityClassification import (
     one_hot_encode,
     customClassificationReport,
     removeId,
@@ -141,7 +140,7 @@ if __name__ == "__main__":
     param_grid = {
         "learning_rate": [0.01],
         "momentum": [0.8],
-        "lambd": [0.0],
+        "lambd": [0.005],
         "decay": [0.5],
         "dropout": [0.0],
         "batch_size": [1],

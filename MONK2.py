@@ -9,8 +9,7 @@ from project.utility.Enum import (
     InitializationType,
 )
 from project.utility.Search import Search
-from project.utility.utility import (
-    custom_cross_validation_classification,
+from project.utility.utilityClassification import (
     one_hot_encode,
     customClassificationReport,
     removeId,

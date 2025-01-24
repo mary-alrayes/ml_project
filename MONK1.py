@@ -9,7 +9,7 @@ from project.utility.Enum import (
     InitializationType,
 )
 from project.utility.Search import Search
-from project.utility.utility import (
+from project.utility.utilityClassification import (
     custom_cross_validation_classification,
     one_hot_encode,
     customClassificationReport,
@@ -168,7 +168,7 @@ if __name__ == "__main__":
             monk1_train_X,
             monk1_train_Y,
             epoch=200,
-            neurons=[6],
+            neurons=[4],
             output_size=1,
         )
     )
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=monk1_train_X.shape[1],
-        hidden_layers=[6],
+        hidden_layers=[4],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],
