@@ -112,11 +112,11 @@ if __name__ == "__main__":
     # Define the parameter grid
     param_grid = {
         "learning_rate": [0.1],
-        "momentum": [0.8],
+        "momentum": [0.9],
         "lambd": [0.0],
-        "decay": [0.0],
+        "decay": [0.2],
         "dropout": [0.0],
-        "batch_size": [1],
+        "batch_size": [2],
     }
 
     # Initialize the Search class for grid search

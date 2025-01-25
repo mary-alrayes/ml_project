@@ -385,28 +385,28 @@ class CustomNeuralNetwork:
             self.previous_updates_b[i] = bias_update
 
     def fit(
-        self,
-        X_train,
-        y_train,
-        X_test=None,
-        y_test=None,
-        epochs=1000,
-        early_stopping=True,
-        batch_size=-1,
-        patience=50,
-        seed=42,
+            self,
+            X_train,
+            y_train,
+            X_test=None,
+            y_test=None,
+            epochs=1000,
+            early_stopping=True,
+            batch_size=-1,
+            patience=120,
+            seed=42,
     ):
         """Train the neural network.
 
         Parameters:
         -----------
-        X : numpy array
+        X_train : numpy array
             Training input data.
-        y : numpy array
+        y_train : numpy array
             Training target labels.
-        X_val : numpy array, optional
+        X_test : numpy array, optional
             Validation input data.
-        y_val : numpy array, optional
+        y_test : numpy array, optional
             Validation target labels.
         epochs : int, optional (default=1000)
             Number of epochs to train.
@@ -431,7 +431,7 @@ class CustomNeuralNetwork:
         history = self._initialize_history()
 
         # Set batch size for full-batch training if needed
-        if batch_size == -1:
+        if batch_size <= 0 or batch_size > X_train.shape[0]:
             batch_size = X_train.shape[0]
 
         # Early stopping variables
@@ -449,14 +449,14 @@ class CustomNeuralNetwork:
             # Train on mini-batches
             epoch_loss = self._train_on_batches(X_shuffled, y_shuffled, batch_size)
 
-            test_loss = 0
+            test_loss = None
             # Evaluate on test set (if provided)
             if X_test is not None and y_test is not None:
                 test_loss = self._evaluate_test(X_test, y_test)
 
                 # Early stopping logic
                 if early_stopping:
-                    patience_counter, should_stop = self._check_early_stopping(
+                    patience_counter, best_test_loss, should_stop = self._check_early_stopping(
                         test_loss, best_test_loss, patience_counter, patience
                     )
                     if should_stop:
@@ -469,6 +469,10 @@ class CustomNeuralNetwork:
             self._update_history(
                 history, epoch, epoch_loss, test_loss, X_train, y_train, X_test, y_test
             )
+
+            # Print training progress
+            print(
+                f"Epoch {epoch + 1}: Train Loss = {epoch_loss:.4f}, Test Loss = {test_loss if test_loss is not None else 'N/A'}")
 
         return history
 
@@ -544,10 +548,7 @@ class CustomNeuralNetwork:
 
         return test_loss
 
-    def _check_early_stopping(
-        self, test_loss, best_test_loss, patience_counter, patience
-    ):
-        """Check if early stopping conditions are met."""
+    def _check_early_stopping(self, test_loss, best_test_loss, patience_counter, patience):
         if test_loss < best_test_loss:
             best_test_loss = test_loss
             patience_counter = 0  # Reset patience counter if validation improves
@@ -555,7 +556,7 @@ class CustomNeuralNetwork:
             patience_counter += 1  # Increment patience counter
 
         should_stop = patience_counter >= patience
-        return patience_counter, should_stop
+        return patience_counter, best_test_loss, should_stop
 
     def _update_history(
         self, history, epoch, epoch_loss, test_loss, X_train, y_train, X_test, y_test

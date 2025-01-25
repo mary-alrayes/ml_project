@@ -10,13 +10,9 @@ from project.utility.Enum import (
 )
 from project.utility.Search import Search
 from project.utility.utilityClassification import (
-    custom_cross_validation_classification,
-    one_hot_encode,
     customClassificationReport,
     preprocessTrainingClassificationData,
-    removeId,
-    splitToFeaturesAndTargetClassification,
-    min_max_scaling,
+    min_max_scaling, balanceData,
 )
 from project.utility.utilityClassification import preprocessTestingClassificationData
 
@@ -82,6 +78,11 @@ if __name__ == "__main__":
         monk2_train_data
     )
 
+    # balancing data cause the target column is not balanced
+    print("Class distribution before balancing:", monk2_train_data["target"].value_counts())
+    monk2_train_data = balanceData(monk2_train_data)
+    print("Class distribution after balancing:", monk2_train_data["target"].value_counts())
+
     # Reshape inputs
     monk2_train_X = monk2_train_X.reshape(monk2_train_X.shape[0], -1)
     monk2_train_Y = monk2_train_Y.reshape(-1, 1)
@@ -107,12 +108,12 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.5],
-        "momentum": [0.8],
+        "learning_rate": [0.3],
+        "momentum": [0.9],
         "lambd": [0.0],
         "decay": [0.0],
         "dropout": [0.0],
-        "batch_size": [4],
+        "batch_size": [6],
     }
 
     print(f"Min X: {np.min(monk2_train_X)}, Max X: {np.max(monk2_train_X)}")
@@ -146,7 +147,7 @@ if __name__ == "__main__":
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=monk2_train_X.shape[1],
-        hidden_layers=[4],
+        hidden_layers=[3],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],
