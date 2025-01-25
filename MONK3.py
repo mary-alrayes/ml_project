@@ -110,10 +110,10 @@ if __name__ == "__main__":
     # Define the parameter grid
     param_grid = {
         "learning_rate": [0.05],
-        "momentum": [0.8],
-        "lambd": [0.0],
+        "momentum": [0.85],
+        "lambd": [0.003],
         "decay": [0.8],
-        "dropout": [0.001],
+        "dropout": [0.0],
         "batch_size": [7],
     }
 
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         search.grid_search_classification(
             monk3_train_X,
             monk3_train_Y,
-            epoch=500,
+            epoch=200,
             neurons=[4],
             output_size=1,
         )
