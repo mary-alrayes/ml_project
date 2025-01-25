@@ -385,16 +385,16 @@ class CustomNeuralNetwork:
             self.previous_updates_b[i] = bias_update
 
     def fit(
-            self,
-            X_train,
-            y_train,
-            X_test=None,
-            y_test=None,
-            epochs=1000,
-            early_stopping=True,
-            batch_size=-1,
-            patience=120,
-            seed=42,
+        self,
+        X_train,
+        y_train,
+        X_test=None,
+        y_test=None,
+        epochs=1000,
+        early_stopping=True,
+        batch_size=-1,
+        patience=120,
+        seed=42,
     ):
         """Train the neural network.
 
@@ -456,8 +456,10 @@ class CustomNeuralNetwork:
 
                 # Early stopping logic
                 if early_stopping:
-                    patience_counter, best_test_loss, should_stop = self._check_early_stopping(
-                        test_loss, best_test_loss, patience_counter, patience
+                    patience_counter, best_test_loss, should_stop = (
+                        self._check_early_stopping(
+                            test_loss, best_test_loss, patience_counter, patience
+                        )
                     )
                     if should_stop:
                         print(
@@ -472,7 +474,8 @@ class CustomNeuralNetwork:
 
             # Print training progress
             print(
-                f"Epoch {epoch + 1}: Train Loss = {epoch_loss:.4f}, Test Loss = {test_loss if test_loss is not None else 'N/A'}")
+                f"Epoch {epoch + 1}: Train Loss = {epoch_loss:.4f}, Test Loss = {test_loss if test_loss is not None else 'N/A'}"
+            )
 
         return history
 
@@ -491,8 +494,8 @@ class CustomNeuralNetwork:
                 "train_loss": [],
                 "train_mee": [],
                 "epoch": [],
-                "test_loss": [],
-                "test_mee": [],
+                "val_loss": [],
+                "val_mee": [],
             }
 
     def _adjust_learning_rate(self, epoch):
@@ -548,11 +551,14 @@ class CustomNeuralNetwork:
 
         return test_loss
 
-    def _check_early_stopping(self, test_loss, best_test_loss, patience_counter, patience):
+    def _check_early_stopping(
+        self, test_loss, best_test_loss, patience_counter, patience
+    ):
         if test_loss < best_test_loss:
             best_test_loss = test_loss
             patience_counter = 0  # Reset patience counter if validation improves
         else:
+            print("increment early stopping")
             patience_counter += 1  # Increment patience counter
 
         should_stop = patience_counter >= patience
@@ -588,8 +594,8 @@ class CustomNeuralNetwork:
                 test_mee = np.mean(
                     np.sqrt(np.sum((y_test - test_predictions) ** 2, axis=1))
                 )
-                history["test_mee"].append(test_mee)
-                history["test_loss"].append(test_loss)
+                history["val_mee"].append(test_mee)
+                history["val_loss"].append(test_loss)
 
     def reset_weights(self):
         """

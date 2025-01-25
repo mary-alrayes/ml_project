@@ -78,19 +78,6 @@ def balanceData(data):
     return data
 
 
-# function to split the data to (training and validation) while preserving the proportion of a specific target in the
-# dataset
-def splitDataToTrainingAndValidationForClassification(data, feature):
-    # split=1 returns 1 training set and one validation set
-    split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-    # for loops based on number of splits
-    for train_index, validation_index in split.split(data, data[feature]):
-        split_train_set = data.loc[train_index]
-        split_validation_set = data.loc[validation_index]
-
-    return split_train_set, split_validation_set
-
-
 # function to split data to features and target
 def splitToFeaturesAndTargetClassification(data):
     X = data.drop("target", axis=1).values.tolist()
@@ -123,9 +110,7 @@ def one_hot_encode(columnData):
 # Perform Preprocessing on Training data
 # 1. removing id
 # 2. one hot encoding on each column
-## 3. split the data to training and validation
-# 4. split training data to X and Y
-## 5. split validation data to X and Y
+# 3. split training data to X and Y
 def preprocessTrainingClassificationData(trainData):
     # remove the id column
     trainData = removeId(trainData)
@@ -242,12 +227,6 @@ def customClassificationReport(trueValue, predictedValues):
     return mean_squared_error(trueValue, predictedValues)
 
 
-# # Accuracy scoring function
-# def accuracy_score_custom_for_grid_search(nn_model, X, y):
-#     predictions = nn_model.predict(X)
-#     return np.mean(predictions == y)
-
-
 def custom_cross_validation_classification(
     model,
     X_tr,
@@ -328,8 +307,8 @@ def custom_cross_validation_classification(
         fold_history.append(history)
 
     # Extract validation metrics from all folds
-    all_val_losses = [history["val_loss"] for history in fold_history]
-    all_val_accuracies = [history["val_acc"] for history in fold_history]
+    all_val_losses = [history["test_loss"] for history in fold_history]
+    all_val_accuracies = [history["test_acc"] for history in fold_history]
 
     # Find the minimum number of epochs across all folds
     # This ensures that all folds have the same number of epochs for averaging
@@ -351,67 +330,6 @@ def custom_cross_validation_classification(
     }
 
     # Calculate the mean accuracy across all folds
-    mean_accuracy = np.mean(fold_accuracies)
-
-    return mean_accuracy, fold_accuracies, mean_history
-
-
-def custom_cross_validation_classification(
-    model,
-    X_tr,
-    y_tr,
-    epoch,
-    batch_size,
-    num_folds=5,
-):
-    X_tr, y_tr = np.array(X_tr), np.array(y_tr)
-
-    skf = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=42)
-
-    fold_accuracies = []
-    fold_history = []
-
-    for fold, (train_idx, test_idx) in enumerate(skf.split(X_tr, y_tr)):
-        print(f"Fold {fold + 1}/{num_folds}")
-
-        X_train, X_test = X_tr[train_idx], X_tr[test_idx]
-        y_train, y_test = y_tr[train_idx], y_tr[test_idx]
-
-        model.reset_weights()
-
-        history = model.fit(
-            X_train,
-            y_train.reshape(-1, 1),
-            X_test,
-            y_test,
-            epochs=epoch,
-            batch_size=batch_size,
-        )
-
-        predictions = model.predict(X_test)
-        accuracy = np.mean(predictions.flatten() == y_test.flatten())
-
-        fold_accuracies.append(accuracy)
-        fold_history.append(history)
-
-    # Estrazione delle metriche
-    all_val_losses = [history["test_loss"] for history in fold_history]
-    all_val_accuracies = [history["test_acc"] for history in fold_history]
-
-    # Trova la lunghezza minima tra le epoche delle fold
-    min_epochs = min(len(vl) for vl in all_val_losses)
-
-    # Troncamento per uniformare le lunghezze
-    all_val_losses = [vl[:min_epochs] for vl in all_val_losses]
-    all_val_accuracies = [va[:min_epochs] for va in all_val_accuracies]
-
-    # Calcolo della media su tutte le epoche
-    mean_history = {
-        "test_loss": np.mean(np.array(all_val_losses), axis=0).tolist(),
-        "test_acc": np.mean(np.array(all_val_accuracies), axis=0).tolist(),
-        "epoch": list(range(1, min_epochs + 1)),
-    }
-
     mean_accuracy = np.mean(fold_accuracies)
 
     return mean_accuracy, fold_accuracies, mean_history

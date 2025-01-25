@@ -143,7 +143,6 @@ if __name__ == "__main__":
         )
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
-    print("best_history_validation: ", best_history_validation)
 
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
@@ -164,7 +163,7 @@ if __name__ == "__main__":
 
     epoch = max(best_history_validation["epoch"])
 
-    # Re-addestra la rete neurale sull'intero set di dati
+    # Re-train the neural network on the entire dataset
     history_final = nn1.fit(
         X_train=monk1_train_X,
         y_train=monk1_train_Y,

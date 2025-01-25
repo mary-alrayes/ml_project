@@ -189,7 +189,7 @@ if __name__ == "__main__":
     )
     plt.xlabel("Epochs")
     plt.ylabel("Mean Squared Error")
-    plt.title("monk2 - Final Training ansd Testing Loss Over Epochs")
+    plt.title("monk2 - Final Training and Testing Loss Over Epochs")
     plt.legend()
     plt.grid(True)
     plt.show(block=False)
