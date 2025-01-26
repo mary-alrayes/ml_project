@@ -392,7 +392,7 @@ class CustomNeuralNetwork:
         epochs=1000,
         early_stopping=True,
         batch_size=-1,
-        patience=120,
+        patience=80,
         seed=42,
     ):
         """Train the neural network.
