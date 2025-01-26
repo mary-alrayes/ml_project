@@ -9,15 +9,16 @@ from project.utility.Enum import (
     InitializationType,
 )
 from project.utility.Search import Search
-from project.utility.utility import (
+from project.utility.utilityClassification import (
     custom_cross_validation_classification,
     one_hot_encode,
     customClassificationReport,
+    preprocessTrainingClassificationData,
     removeId,
-    preprocessClassificationData,
     splitToFeaturesAndTargetClassification,
     min_max_scaling,
 )
+from project.utility.utilityClassification import preprocessTestingClassificationData
 
 if __name__ == "__main__":
     monk2_train = "monk/monks-2.train"
@@ -29,7 +30,7 @@ if __name__ == "__main__":
         sep=" ",
         header=None,
     )
-    # Drop the first column (not needed for training)
+    # Drop the first column from training data (not needed for training)
     monk2_train_data = monk2_train_data.drop(monk2_train_data.columns[0], axis=1)
     monk2_train_data.rename(
         columns={
@@ -51,7 +52,9 @@ if __name__ == "__main__":
         sep=" ",
         header=None,
     )
+    # Drop first column from testing data
     monk2_test_data = monk2_test_data.drop(monk2_test_data.columns[0], axis=1)
+    # renaming column data
     monk2_test_data.rename(
         columns={
             1: "target",
@@ -72,8 +75,12 @@ if __name__ == "__main__":
     print("Test data")
     print(monk2_test_data.head())
 
+    # ------------------------------Preprocessing Training Data--------------------
+
     # Preprocess train data
-    monk2_train_X, monk2_train_Y = preprocessClassificationData(monk2_train_data)
+    monk2_train_X, monk2_train_Y = preprocessTrainingClassificationData(
+        monk2_train_data
+    )
 
     # Reshape inputs
     monk2_train_X = monk2_train_X.reshape(monk2_train_X.shape[0], -1)
@@ -82,61 +89,22 @@ if __name__ == "__main__":
     # Apply rescaling to training data
     monk2_train_X, X_min, X_max = min_max_scaling(monk2_train_X, feature_range=(-1, 1))
 
-    print(f"Riscalato train X shape: {monk2_train_X.shape}")
+    print(f"Train X shape: {monk2_train_X.shape}")
+    print(f"Test Y shape: {monk2_train_Y.shape}")
 
-    # --------------------------------------------------Preprocessing Test--------------------
-
-    # Remove ID from test data
-    monk2_test_data = removeId(monk2_test_data)
-
-    # Apply one-hot encoding to test data
-    columns_to_encode = monk2_test_data.columns[1:]  # Exclude 'target'
-    encoded_columns = {
-        col: pd.DataFrame(one_hot_encode(monk2_test_data[col])[0])
-        for col in columns_to_encode
-    }
-    one_hot_test_monk2 = pd.concat(
-        [monk2_test_data["target"], pd.concat(encoded_columns.values(), axis=1)], axis=1
+    # --------------------------Preprocessing Testing Data--------------------
+    # Preprocess test data
+    monk2_real_test_X, monk2_real_test_Y = preprocessTestingClassificationData(
+        monk2_test_data
     )
 
-    monk2_real_test_X, monk2_real_test_Y = splitToFeaturesAndTargetClassification(
-        one_hot_test_monk2
-    )
-    monk2_real_test_X = np.array(monk2_real_test_X, dtype=np.float64)
-    monk2_real_test_X = (monk2_real_test_X - X_min) / (X_max - X_min + 1e-8)
-    monk2_real_test_X = monk2_real_test_X * (1 - (-1)) + (-1)
-    monk2_real_test_Y = np.array(monk2_real_test_Y, dtype=np.float64)
+    # Apply rescaling to testing data
+    monk2_real_test_X, _, _ = min_max_scaling(monk2_real_test_X, feature_range=(-1, 1))
 
     print(f"Test X shape: {monk2_real_test_X.shape}")
     print(f"Test Y shape: {monk2_real_test_Y.shape}")
 
-    # -----------------------------Test----------------------------
-
-    # Remove ID from test data
-    monk2_test_data = removeId(monk2_test_data)
-
-    # Apply one-hot encoding to test data
-    columns_to_encode = monk2_test_data.columns[1:]  # Exclude 'target'
-    encoded_columns = {
-        col: pd.DataFrame(one_hot_encode(monk2_test_data[col])[0])
-        for col in columns_to_encode
-    }
-    one_hot_test_monk2 = pd.concat(
-        [monk2_test_data["target"], pd.concat(encoded_columns.values(), axis=1)], axis=1
-    )
-
-    monk2_real_test_X, monk2_real_test_Y = splitToFeaturesAndTargetClassification(
-        one_hot_test_monk2
-    )
-    monk2_real_test_X = np.array(monk2_real_test_X, dtype=np.float64)
-    monk2_real_test_X = (monk2_real_test_X - X_min) / (X_max - X_min + 1e-8)
-    monk2_real_test_X = monk2_real_test_X * (1 - (-1)) + (-1)
-    monk2_real_test_Y = np.array(monk2_real_test_Y, dtype=np.float64)
-
-    print(f"Test X shape: {monk2_real_test_X.shape}")
-    print(f"Test Y shape: {monk2_real_test_Y.shape}")
-
-    # ---------------------------------------------------
+    # ---------------------------------------------------------------------
     # Define the parameter grid
     param_grid = {
         "learning_rate": [0.5],
@@ -174,6 +142,7 @@ if __name__ == "__main__":
     )
     print(f"Best Parameters:\n {best_params}, Best Score: {best_score}")
     print("best_history_validation: ", best_history_validation)
+
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=monk2_train_X.shape[1],
@@ -195,8 +164,8 @@ if __name__ == "__main__":
 
     # Re-addestra la rete neurale sull'intero set di dati
     history_final = nn1.fit(
-        X=monk2_train_X,
-        y=monk2_train_Y,
+        X_train=monk2_train_X,
+        y_train=monk2_train_Y,
         epochs=epoch,
         batch_size=best_params["batch_size"],
     )
@@ -212,19 +181,19 @@ if __name__ == "__main__":
     )
     plt.plot(
         best_history_validation["epoch"],
-        best_history_validation["val_loss"],
-        label="Validation Loss (MSE)",
+        best_history_validation["test_loss"],
+        label="Test Loss (MSE)",
         color="blue",
         linestyle="--",
     )
     plt.xlabel("Epochs")
     plt.ylabel("Mean Squared Error")
-    plt.title("monk2 - Final Training ansd Validation Loss Over Epochs")
+    plt.title("monk2 - Final Training ansd Testing Loss Over Epochs")
     plt.legend()
     plt.grid(True)
-    plt.show()
+    plt.show(block=False)
 
-    # Plot Training and Validation Accuracy
+    # Plot Training and Testing Accuracy
     plt.figure()
     plt.plot(
         history_final["epoch"],
@@ -235,17 +204,17 @@ if __name__ == "__main__":
     )
     plt.plot(
         best_history_validation["epoch"],
-        best_history_validation["val_acc"],
-        label="Validation Accuracy",
+        best_history_validation["test_acc"],
+        label="Testing Accuracy",
         color="blue",
         linestyle="--",
     )
     plt.xlabel("Epochs")
     plt.ylabel("Accuracy")
-    plt.title("monk2 - Final Training and Validation Accuracy Over Epochs")
+    plt.title("monk2 - Final Training and Testing Accuracy Over Epochs")
     plt.legend()
     plt.grid(True)
-    plt.show()
+    plt.show(block=False)
 
     # -------------------------------------------------TEST------------------------------------------------------------
 
@@ -259,3 +228,5 @@ if __name__ == "__main__":
     mse_train = np.mean(mse_train)
 
     print(f"MSE(TR) : {mse_train}, MSE(TS): {mse_test}")
+
+    plt.show()

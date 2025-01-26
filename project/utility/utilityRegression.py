@@ -11,6 +11,7 @@ from project.utility.Enum import RegressionMetrics, TaskType
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.metrics._plot.confusion_matrix import ConfusionMatrixDisplay
 
+
 # function to remove the id column from the data
 def removeId(data):
     return data.drop("ID", axis=1, errors="ignore")
@@ -37,7 +38,7 @@ def min_max_scaling(X, feature_range=(-1, 1)):
     # Evitare divisione per zero nel caso di feature costanti
     X_scaled = (X - X_min) / (X_max - X_min + 1e-8)  # Normalizzazione a [0,1]
     X_scaled = (
-            X_scaled * (max_val - min_val) + min_val
+        X_scaled * (max_val - min_val) + min_val
     )  # Riscalatura al range desiderato
 
     return X_scaled, X_min, X_max
@@ -63,10 +64,11 @@ def min_max_rescale(X, X_min, X_max, feature_range=(-1, 1)):
 
     return X_scaled
 
+
 # ----------------------------REGRESSION-----------------------------------
-# Split data into training and assessment sets 
+# Split data into training and assessment sets
 def splitDataToTrainingAndAssessmentForRegression(
-        data,
+    data,
 ):
     """
     Split data into training and assessment sets.
@@ -157,7 +159,7 @@ def min_max_denormalization(predictions, data, target_columns):
         min_value = target_data[target_column].min()
         max_value = target_data[target_column].max()
         denorm_predictions[:, idx] = (
-                predictions[:, idx] * (max_value - min_value) + min_value
+            predictions[:, idx] * (max_value - min_value) + min_value
         )
 
     return denorm_predictions
@@ -216,11 +218,11 @@ def zscore_normalization(data, means=None, stds=None):
 # 4. split training data to X and Y
 # 5. split validation data to X and Y
 def preprocessRegrData(
-        data, standard, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
+    data, standard, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
 ):
     # remove the id column
     data = removeId(data)
-    
+
     # split the data to training and assessment
     split_train_set, split_assessment_set = (
         splitDataToTrainingAndAssessmentForRegression(data)
@@ -270,7 +272,7 @@ def preprocessRegrData(
 
 
 def preprocessRegressionTestData(
-        data, test_X, standard=True, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
+    data, test_X, standard=True, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
 ):
     # remove the id column
     test_X = removeId(test_X)
@@ -360,15 +362,15 @@ def customRegressionReport(trueValues, predictedValues, target_names):
 
 ### function to perform cross validation for regression
 def custom_cross_validation_regression(
-        model,
-        X_tr,
-        y_tr,
-        epoch,
-        batch_size,
-        num_folds=5,
-        metric=RegressionMetrics.MSE,
+    model,
+    X_tr,
+    y_tr,
+    epoch,
+    batch_size,
+    num_folds=5,
+    metric=RegressionMetrics.MSE,
 ):
-    
+
     X_train, y_train = np.array(X_tr), np.array(y_tr)
 
     # Initialize stratified k-fold
@@ -427,7 +429,7 @@ def custom_cross_validation_regression(
     mean_history = {
         "val_loss": np.mean(np.array(all_val_losses), axis=0).tolist(),
         "val_mee": np.mean(np.array(all_val_scores), axis=0).tolist(),
-        "epoch": list(range(1, min_epochs + 1))
+        "epoch": list(range(1, min_epochs + 1)),
     }
 
     # Calculate mean score
@@ -435,6 +437,7 @@ def custom_cross_validation_regression(
 
     # Return  the mean score and the fold scores
     return mean_score, fold_scores, mean_history
+
 
 # save the results in a csv file
 def save_predictions_to_csv(data, file_name):

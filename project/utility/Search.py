@@ -41,14 +41,14 @@ class Search:
         X,
         y,
         epoch=100,
-        neurons=[3],
+        neurons=[],
         output_size=1,
     ):
         best_score_class = -float("inf")
         best_params = None
         best_history = {}
 
-        # Generate all th combination fro hyperparameters using itertools.product
+        # Generate all th combination for hyperparameters using itertools.product
         param_combinations = product(
             self.param_grid["learning_rate"],
             self.param_grid["momentum"],
