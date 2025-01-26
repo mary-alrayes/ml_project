@@ -77,7 +77,7 @@ class CustomNeuralNetwork:
         self.layers = [input_size] + hidden_layers + [output_size]
 
         # Print the network architecture
-        print("Network Layers\n", self.layers)
+        #print("Network Layers\n", self.layers)
 
         # Step 1: Initialize weights
         # Use the specified initialization method (e.g., Gaussian, Xavier) to set initial weights
@@ -133,7 +133,7 @@ class CustomNeuralNetwork:
     def elu_derivative(x, alpha=1.0):
         """Derivative of ELU for backpropagation."""
         return np.where(x > 0, 1, alpha * np.exp(x))
-
+    
     def regularization_l1(self):
         """
         Computes the L1 regularization term (sum of the absolute values of the weights).
@@ -283,7 +283,7 @@ class CustomNeuralNetwork:
                 # Apply activation function
                 a = self.apply_activationFunction(z)
 
-                # Apply dropout only to hidden layers during training if the rate passed is greater than 0
+                 # Apply dropout only to hidden layers during training if the rate passed is greater than 0
                 if i < len(self.weights) - 1 and training and self.dropout_rate > 0.0:
                     dropout_mask = (
                         np.random.rand(*a.shape) > self.dropout_rate
@@ -353,7 +353,7 @@ class CustomNeuralNetwork:
                     self.biases[i] + self.momentum * self.previous_updates_b[i]
                 )
 
-                # Add regularization term for the interim weights and biases
+                # Recalculate gradients at the "lookahead" position
                 weight_gradient += self.lambd * interim_weights
                 bias_gradient += self.lambd * interim_biases
 
@@ -427,6 +427,9 @@ class CustomNeuralNetwork:
         # Fix seed for reproducibility
         np.random.seed(seed)
 
+        assert not np.any(np.isnan(X_train)), "NaNs found in training data"
+        assert not np.any(np.isnan(y_train)), "NaNs found in target data"
+
         # Initialize history dictionary to store metrics
         history = self._initialize_history()
 
@@ -493,9 +496,11 @@ class CustomNeuralNetwork:
             return {
                 "train_loss": [],
                 "train_mee": [],
+                "train_predictions": [],
                 "epoch": [],
                 "val_loss": [],
                 "val_mee": [],
+                "val_predictions": [],
             }
 
     def _adjust_learning_rate(self, epoch):
@@ -588,6 +593,7 @@ class CustomNeuralNetwork:
                 np.sqrt(np.sum((y_train - train_predictions) ** 2, axis=1))
             )
             history["train_mee"].append(train_mee)
+            history["train_predictions"].append(train_predictions)
 
             if X_test is not None and y_test is not None:
                 test_predictions = self.predict(X_test)
@@ -596,6 +602,7 @@ class CustomNeuralNetwork:
                 )
                 history["val_mee"].append(test_mee)
                 history["val_loss"].append(test_loss)
+                history["val_predictions"].append(test_predictions)
 
     def reset_weights(self):
         """

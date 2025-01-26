@@ -73,13 +73,12 @@ if __name__ == "__main__":
 
     # Print the training and test data
     print("CUP")
-    print("train shape: ", train_data.shape, "\n train: \n", train_data.head())
-    print("test shape: \n", test_data.shape, "\n test: \n", test_data.head())
+    print("train shape: ", train_data.shape)
+    print("test shape: \n", test_data.shape)
 
     train_set, train_X, train_Y, assessment_X, assessment_Y = preprocessRegrData(
         train_data, standard=True, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
     )
-    print("train_set\n: ", train_set)
     print("train_X\n: ", train_X.shape, "train_Y\n: ", train_Y.shape)
 
     # reshape train_X, train_Y, validation_X
@@ -91,15 +90,15 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        'learning_rate': [0.001], #[0.0005, 0.001, 0.0025, 0.005, 0.01, 0.05], # Learning rate values
-        'momentum': [0.85], #[0.8, 0.85, 0.9], # Momentum values
-        'lambd': [0.01], #[0.005, 0.01, 0.05, 0.1], # Regularization lambda values
+        'learning_rate': [0.0005, 0.001, 0.0025, 0.005, 0.01, 0.05], # Learning rate values
+        'momentum': [0.8, 0.85, 0.9], # Momentum values
+        'lambd': [0.005, 0.01, 0.05, 0.1], # Regularization lambda values
         'hidden_layers': [[30,40], [40,50], [50,60]], # Number of neurons in the hidden layer
-        'dropout': [0.001], #[0.0, 0.1], # Dropout rate values
-        'decay': [0.0], #[0.0, 0.0001, 0.0005, 0.001, 0.005], # Decay values
-        'initialization': [InitializationType.HE], #[InitializationType.XAVIER, InitializationType.HE], # Initialization values
+        'dropout': [0.0, 0.01, 0.001], # Dropout rate values
+        'decay': [0.0, 0.0001, 0.0005, 0.001, 0.005], # Decay values
+        'initialization': [InitializationType.XAVIER, InitializationType.HE], # Initialization values
         'nesterov': [False, True], # Nesterov values
-        'activationType': [ActivationType.RELU] #[ActivationType.RELU,  ActivationType.ELU],  # Activation values
+        'activationType': [ActivationType.RELU,  ActivationType.ELU],  # Activation values
     }
 
     # Initialize the Search class for grid search
@@ -213,22 +212,17 @@ if __name__ == "__main__":
     plt.show()
 
     # -------------------------Ensemble Prediction--------------------------------
-    #Initialize lists to store losses for each epoch across models
-    all_train_losses = []
-    all_val_losses = []
-    all_train_mee = []
-    all_val_mee = []
+    #Initialize lists to store denormalized metrics for all epoch
+    denorm_train_mse_per_epoch = []
+    denorm_val_mse_per_epoch = []
+    denorm_train_mee_per_epoch = []
+    denorm_val_mee_per_epoch = []
     
     # Initialize a list to store results for all models
     results = []
+    
     # Number of repeats for each model of the ensemble
-    n_reapeats = 3
-
-    # Initialize lists to store losses and MEE for each repeat
-    all_repeated_train_losses = []
-    all_repeated_val_losses = []
-    all_repeated_train_mee = []
-    all_repeated_val_mee = []
+    n_reapeats = 8
 
     # Initialize an empty list to store predictions for each model
     ensemble_predictions = []
@@ -238,23 +232,23 @@ if __name__ == "__main__":
     for model_index, top_model in enumerate(top_models):
         #initialize data structures to store predictions for each repeat
         model_results = {
-            "model_index": model_index,
+            "model_index": model_index + 1,
             "final_train_loss": [],
             "final_val_loss": [],
             "final_train_mee": [],
             "final_val_mee": [],
         }
-        
         # Initialize lists to store predictions for each repeat
         repeated_predictions = []
         repeated_train_predictions = []
-        
-        # Initialize lists to collect loss and MEE for each repeat (per model)
-        repeated_train_losses = []
-        repeated_val_losses = []
-        repeated_train_mee = []
-        repeated_val_mee = []
 
+        # Initialize lists to collect losses and MEE for each epoch across repeats (per model)
+        model_train_mse_per_epoch = []
+        model_val_mse_per_epoch = []
+        model_train_mee_per_epoch = []
+        model_val_mee_per_epoch = []
+
+        # For each repeat, retrain the model
         for repeat in range(n_reapeats): 
             # Create a new instance of the model
             retrained_model = CustomNeuralNetwork(
@@ -289,23 +283,47 @@ if __name__ == "__main__":
             train_predictions = retrained_model.predict(train_X)
             repeated_train_predictions.append(train_predictions)
 
-            # Append losses and MEE for this repeat
-            repeated_train_losses.append(history['train_loss'])
-            repeated_val_losses.append(history['val_loss'])
-            repeated_train_mee.append(history['train_mee'])
-            repeated_val_mee.append(history['val_mee'])
-            
             # Denormalize predictions and ground truth
             denormalized_train_Y = denormalize_zscore(train_Y, train_set, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"])
             denormalized_assessment_Y = denormalize_zscore(assessment_Y, train_set, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"])
             denormalized_train_preds = denormalize_zscore(train_predictions, train_set, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"])
             denormalized_val_preds = denormalize_zscore(predictions, train_set, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"])
 
-            # Compute final losses and MEE on denormalized data
+            # Compute final MSE and MEE on denormalized data
             final_train_loss = np.mean((denormalized_train_preds - denormalized_train_Y) ** 2)
             final_val_loss = np.mean((denormalized_val_preds - denormalized_assessment_Y) ** 2)
             final_train_mee = np.mean(np.sqrt(np.sum((denormalized_train_preds - denormalized_train_Y) ** 2, axis=1)))
             final_val_mee = np.mean(np.sqrt(np.sum((denormalized_val_preds - denormalized_assessment_Y) ** 2, axis=1)))
+
+            # Reset lists for each repeat (within the current model)
+            denorm_train_mse_per_epoch_repeat = []
+            denorm_val_mse_per_epoch_repeat = []
+            denorm_train_mee_per_epoch_repeat = []
+            denorm_val_mee_per_epoch_repeat = []
+
+            # Denormalize losses and MEE per epoch
+            for epoch_index in range(epoch):
+                denorm_train_preds = denormalize_zscore(history['train_predictions'][epoch_index], train_set, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"])
+                denorm_val_preds = denormalize_zscore(history['val_predictions'][epoch_index], train_set, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"])
+                
+                # Compute the mean squared error for the training and validation set
+                denorm_train_mse_epoch = np.mean((denorm_train_preds - denormalized_train_Y) ** 2)
+                denorm_val_mse_epoch = np.mean((denorm_val_preds - denormalized_assessment_Y) ** 2)
+                # Compute the mean euclidean error for the training and validation set
+                denorm_train_mee_epoch = np.mean(np.sqrt(np.sum((denorm_train_preds - denormalized_train_Y) ** 2, axis=1)))
+                denorm_val_mee_epoch = np.mean(np.sqrt(np.sum((denorm_val_preds - denormalized_assessment_Y) ** 2, axis=1)))
+
+                # Append these results for the current epoch
+                denorm_train_mse_per_epoch_repeat.append(denorm_train_mse_epoch)
+                denorm_val_mse_per_epoch_repeat.append(denorm_val_mse_epoch)
+                denorm_train_mee_per_epoch_repeat.append(denorm_train_mee_epoch)
+                denorm_val_mee_per_epoch_repeat.append(denorm_val_mee_epoch)
+            
+            # After this repeat, accumulate results for the model
+            model_train_mse_per_epoch.append(denorm_train_mse_per_epoch_repeat)
+            model_val_mse_per_epoch.append(denorm_val_mse_per_epoch_repeat)
+            model_train_mee_per_epoch.append(denorm_train_mee_per_epoch_repeat)
+            model_val_mee_per_epoch.append(denorm_val_mee_per_epoch_repeat)
 
         # Append the results for this repeat
         model_results["final_train_loss"].append(final_train_loss)
@@ -313,17 +331,17 @@ if __name__ == "__main__":
         model_results["final_train_mee"].append(final_train_mee)
         model_results["final_val_mee"].append(final_val_mee)
 
-        # Compute the mean of losses and MEE across all repeats for this model
-        mean_train_loss_for_model = np.mean(repeated_train_losses, axis=0)
-        mean_val_loss_for_model = np.mean(repeated_val_losses, axis=0)
-        mean_train_mee_for_model = np.mean(repeated_train_mee, axis=0)
-        mean_val_mee_for_model = np.mean(repeated_val_mee, axis=0)
+        # Compute the mean loss/MEE over all repeats and epochs for this model
+        mean_train_mse_per_epoch = np.mean(model_train_mse_per_epoch, axis=0)
+        mean_val_mse_per_epoch = np.mean(model_val_mse_per_epoch, axis=0)
+        mean_train_mee_per_epoch = np.mean(model_train_mee_per_epoch, axis=0)
+        mean_val_mee_per_epoch = np.mean(model_val_mee_per_epoch, axis=0)
 
-        # Store these averaged losses and MEE for this model (across repeats)
-        all_train_losses.append(mean_train_loss_for_model)
-        all_val_losses.append(mean_val_loss_for_model)
-        all_train_mee.append(mean_train_mee_for_model)
-        all_val_mee.append(mean_val_mee_for_model)
+        # Append these model averages to the final lists
+        denorm_train_mse_per_epoch.append(mean_train_mse_per_epoch)
+        denorm_val_mse_per_epoch.append(mean_val_mse_per_epoch)
+        denorm_train_mee_per_epoch.append(mean_train_mee_per_epoch)
+        denorm_val_mee_per_epoch.append(mean_val_mee_per_epoch)
 
         #Compute the average prediction for the model
         mean_predictions = np.mean(repeated_predictions, axis=0)
@@ -348,13 +366,13 @@ if __name__ == "__main__":
     # Compute the mean predictions loss across models
     ensemble_mean_predictions = np.mean(ensemble_predictions, axis=0)  
     ensemble_mean_train_predictions = np.mean(ensemble_train_predictions, axis=0)
-
+    
     # Compute the mean training and validation losses across models
-    mean_train_loss = np.mean(all_train_losses, axis=0)
-    mean_val_loss = np.mean(all_val_losses, axis=0)
-    mean_train_mee = np.mean(all_train_mee, axis=0)
-    mean_val_mee = np.mean(all_val_mee, axis=0)
-    print("mean_train_loss: ", mean_train_loss)
+    overall_train_mse = np.mean(denorm_train_mse_per_epoch, axis=0)
+    overall_val_mse = np.mean(denorm_val_mse_per_epoch, axis=0)
+    overall_train_mee = np.mean(denorm_train_mee_per_epoch, axis=0)
+    overall_val_mee = np.mean(denorm_val_mee_per_epoch, axis=0)
+
     # Save the results to a JSON file for later use
     with open("retraining_results.json", "w") as f:
         json.dump(results, f, indent=4)
@@ -364,8 +382,8 @@ if __name__ == "__main__":
 
     # Plot Training Loss
     plt.plot(
-        range(1, len(mean_train_loss) + 1),
-        mean_train_loss,
+        range(1, len(overall_train_mse) + 1),
+        overall_train_mse,
         label="Mean Training Loss (MSE)",
         color="red",
         linestyle="-",
@@ -373,8 +391,8 @@ if __name__ == "__main__":
 
     # Plot Validation Loss
     plt.plot(
-        range(1, len(mean_val_loss) + 1),
-        mean_val_loss,
+        range(1, len(overall_val_mse) + 1),
+        overall_val_mse,
         label="Mean Assessment Loss (MSE)",
         color="blue",
         linestyle="--",
@@ -395,8 +413,8 @@ if __name__ == "__main__":
 
     # Plot Training MEE
     plt.plot(
-        range(1, len(mean_train_mee) + 1),
-        mean_train_mee,
+        range(1, len(overall_train_mee) + 1),
+        overall_train_mee,
         label="Mean Training Loss (MEE)",
         color="red",
         linestyle="-",
@@ -404,8 +422,8 @@ if __name__ == "__main__":
 
     # Plot Validation MEE
     plt.plot(
-        range(1, len(mean_val_mee) + 1),
-        mean_val_mee,
+        range(1, len(overall_val_mee) + 1),
+        overall_val_mee,
         label="Mean Assessment Loss (MEE)",
         color="blue",
         linestyle="--",
@@ -424,35 +442,15 @@ if __name__ == "__main__":
     # Evaluate the ensemble
     print("\nRetrained Ensemble Denormalized Regression Report:")
     # Denormalize predictions for interpretability
-    ensemble_denorm_predictions = denormalize_zscore(
-        ensemble_mean_predictions,
-        data=train_set,
-        target_columns=["TARGET_x", "TARGET_y", "TARGET_z"],
-    )
-    assessment_Y_denorm = denormalize_zscore(
-        assessment_Y,
-        data=train_set,
-        target_columns=["TARGET_x", "TARGET_y", "TARGET_z"],
-    )
-    customRegressionReport(
-        assessment_Y_denorm,
-        ensemble_denorm_predictions,
-        target_names=["TARGET_x", "TARGET_y", "TARGET_z"],
-    )
-    print("\nRetrained Ensemble Training Regression Report:")
-    customRegressionReport(
-        assessment_Y,
-        ensemble_mean_predictions,
-        target_names=["TARGET_x", "TARGET_y", "TARGET_z"],
-    )
+    ensemble_denorm_predictions = denormalize_zscore(ensemble_mean_predictions, data=train_set,target_columns=["TARGET_x", "TARGET_y", "TARGET_z"])
+    assessment_Y_denorm = denormalize_zscore(assessment_Y, data=train_set, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"])
+    customRegressionReport(assessment_Y_denorm, ensemble_denorm_predictions, target_names=["TARGET_x", "TARGET_y", "TARGET_z"])
 
     # Training loss (MSE e MEE)
     print("\nTraining loss denormalized: ")
     train_y_denorm = denormalize_zscore(train_Y, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     train_nn_pred_denorm = denormalize_zscore(ensemble_mean_train_predictions, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     customRegressionReport(train_y_denorm, train_nn_pred_denorm, target_names=['TARGET_x', 'TARGET_y', 'TARGET_z'])
-    print("\nTraining loss: ")
-    customRegressionReport(train_Y, ensemble_mean_train_predictions, target_names=['TARGET_x', 'TARGET_y', 'TARGET_z'])
 
     # -----------------------------Test set prediction---------------------------
     train_final_set_X = np.vstack((train_X, assessment_X))
@@ -495,7 +493,7 @@ if __name__ == "__main__":
     # Convert predictions to a NumPy array for easier manipulation
     ensemble_final_predictions = np.array(
         ensemble_final_predictions
-    )  # Shape: (n_models, n_samples, n_targets)
+    )  
     # Compute the mean predictions loss across models
     ensemble_mean_final_predictions = np.mean(ensemble_final_predictions, axis=0)
 
@@ -508,5 +506,5 @@ if __name__ == "__main__":
 
     # Save the predictions to a CSV file
     save_predictions_to_csv(
-        ensemble_denorm_final_predictions, file_name="ensemble_predictions_nesterov.csv"
+        ensemble_denorm_final_predictions, file_name="predictions.csv"
     )

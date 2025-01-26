@@ -237,6 +237,8 @@ def preprocessRegrData(
         split_assessment_set, _, _ = zscore_normalization(
             split_assessment_set, means=train_means, stds=train_stds
         )
+        print("train_means: ", train_means)
+        print("train_stds: ", train_stds)
 
         # split the training set to features and target
         train_X, train_Y = splitToFeaturesAndTargetRegression(train_set, target_columns)
@@ -269,7 +271,6 @@ def preprocessRegrData(
         np.array(assessment_X),
         np.array(assessment_Y),
     )
-
 
 def preprocessRegressionTestData(
     data, test_X, standard=True, target_columns=["TARGET_x", "TARGET_y", "TARGET_z"]
@@ -362,13 +363,14 @@ def customRegressionReport(trueValues, predictedValues, target_names):
 
 ### function to perform cross validation for regression
 def custom_cross_validation_regression(
-    model,
-    X_tr,
-    y_tr,
-    epoch,
-    batch_size,
-    num_folds=5,
-    metric=RegressionMetrics.MSE,
+        model,
+        train_set,
+        X_tr,
+        y_tr,
+        epoch,
+        batch_size,
+        num_folds=5,
+        metric=RegressionMetrics.MSE,
 ):
 
     X_train, y_train = np.array(X_tr), np.array(y_tr)
@@ -379,6 +381,8 @@ def custom_cross_validation_regression(
     # an array to store the score for each fold
     fold_scores = []
     fold_history = []
+    denorm_mse = []
+    denorm_mee = []
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(X_tr)):
         print(f"Fold {fold + 1}/{num_folds}")
@@ -387,6 +391,7 @@ def custom_cross_validation_regression(
         X_train, X_test = X_tr[train_idx], X_tr[test_idx]
         y_train, y_test = y_tr[train_idx], y_tr[test_idx]
 
+        # Reset the model weights for each fold
         model.reset_weights()
 
         # Train the model on the training data
@@ -408,6 +413,13 @@ def custom_cross_validation_regression(
         elif metric == RegressionMetrics.MAE:
             score = mean_absolute_error(y_test, predictions)
 
+        # Denormalize the predictions and true values
+        denorm_predictions = denormalize_zscore(predictions, train_set, ["TARGET_x", "TARGET_y", "TARGET_z"])
+        denorm_true_values = denormalize_zscore(y_test, train_set, ["TARGET_x", "TARGET_y", "TARGET_z"])
+        # Calculate the denormalized MSE and MEE
+        denorm_mse.append(mean_squared_error(denorm_true_values, denorm_predictions))
+        denorm_mee.append(np.mean(np.sqrt(np.sum((denorm_true_values - denorm_predictions) ** 2, axis=1))))
+        
         print(f"Fold {fold + 1} {metric.value}: {score:.4f}")
         print("--------------------------------------------")
         # append the fold score loss to fold_scores
@@ -435,9 +447,15 @@ def custom_cross_validation_regression(
     # Calculate mean score
     mean_score = np.mean(fold_scores)
 
-    # Return  the mean score and the fold scores
-    return mean_score, fold_scores, mean_history
+    # Calculate mean denormalized MSE and MEE
+    mean_denorm_mse = np.mean(denorm_mse)
+    mean_denorm_mee = np.mean(denorm_mee)
 
+    print(f"Mean Denormalized MSE: {mean_denorm_mse:.4f}")
+    print(f"Mean Denormalized MEE: {mean_denorm_mee:.4f}")
+
+    # Return  the mean score and the fold scores
+    return mean_score, fold_scores, mean_history, mean_denorm_mse, mean_denorm_mee
 
 # save the results in a csv file
 def save_predictions_to_csv(data, file_name):
