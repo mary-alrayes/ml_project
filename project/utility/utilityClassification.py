@@ -17,7 +17,6 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
 )
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.metrics._plot.confusion_matrix import ConfusionMatrixDisplay
 
 
@@ -224,7 +223,9 @@ def customClassificationReport(trueValue, predictedValues):
             :4
         ],
     )
-    return mean_squared_error(trueValue, predictedValues)
+    mse = np.mean((predictedValues- trueValue)**2)
+    
+    return mse
 
 
 def custom_cross_validation_classification(

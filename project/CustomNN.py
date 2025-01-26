@@ -4,7 +4,6 @@ from project.utility.Enum import (
     TaskType,
     InitializationType,
 )
-from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 
 
@@ -476,9 +475,9 @@ class CustomNeuralNetwork:
             )
 
             # Print training progress
-            print(
-                f"Epoch {epoch + 1}: Train Loss = {epoch_loss:.4f}, Test Loss = {test_loss if test_loss is not None else 'N/A'}"
-            )
+            #print(
+            #    f"Epoch {epoch + 1}: Train Loss = {epoch_loss:.4f}, Test Loss = {test_loss if test_loss is not None else 'N/A'}"
+            #)
 
         return history
 

@@ -4,7 +4,6 @@ import json
 from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
 from sklearn.utils import resample
-from sklearn.metrics import mean_squared_error
 from project.utility.Enum import (
     RegularizationType,
     ActivationType,
@@ -90,15 +89,15 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        'learning_rate': [0.0005, 0.001, 0.0025, 0.005, 0.01, 0.05], # Learning rate values
-        'momentum': [0.8, 0.85, 0.9], # Momentum values
-        'lambd': [0.005, 0.01, 0.05, 0.1], # Regularization lambda values
+        'learning_rate': [0.001], #[0.0005, 0.001, 0.0025, 0.005, 0.01, 0.05], # Learning rate values
+        'momentum': [0.85], #[0.8, 0.85, 0.9], # Momentum values
+        'lambd': [0.01], #[0.005, 0.01, 0.05, 0.1], # Regularization lambda values
         'hidden_layers': [[30,40], [40,50], [50,60]], # Number of neurons in the hidden layer
-        'dropout': [0.0, 0.01, 0.001], # Dropout rate values
-        'decay': [0.0, 0.0001, 0.0005, 0.001, 0.005], # Decay values
-        'initialization': [InitializationType.XAVIER, InitializationType.HE], # Initialization values
+        'dropout': [0.001], #[0.0, 0.01, 0.001], # Dropout rate values
+        'decay': [0.0], #[0.0, 0.0001, 0.0005, 0.001, 0.005], # Decay values
+        'initialization': [InitializationType.HE], #[InitializationType.XAVIER, InitializationType.HE], # Initialization values
         'nesterov': [False, True], # Nesterov values
-        'activationType': [ActivationType.RELU,  ActivationType.ELU],  # Activation values
+        'activationType': [ActivationType.RELU] #[ActivationType.RELU,  ActivationType.ELU],  # Activation values
     }
 
     # Initialize the Search class for grid search

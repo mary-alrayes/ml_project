@@ -222,7 +222,7 @@ if __name__ == "__main__":
     print("Real Testing")
 
     monk1_real_test_predictions_nn = nn1.predict(monk1_real_test_X)
-    mse_test = customClassificationReport(
+    mse_test, mse_f = customClassificationReport(
         monk1_real_test_Y, monk1_real_test_predictions_nn
     )
     mse_train = history_final["train_loss"]

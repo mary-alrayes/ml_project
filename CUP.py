@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 from project.CustomNN import CustomNeuralNetwork
 import pandas as pd
 from sklearn.utils import resample
-from sklearn.metrics import mean_squared_error
 from project.utility.Enum import (
     RegularizationType,
     ActivationType,

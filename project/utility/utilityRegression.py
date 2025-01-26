@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn import metrics
 from sklearn.utils import resample
 from project.utility.Enum import RegressionMetrics, TaskType
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error
 from sklearn.metrics._plot.confusion_matrix import ConfusionMatrixDisplay
 
 
@@ -308,7 +308,7 @@ def preprocessRegressionTestData(
 # it gives the MAE, MSE, RMSE, R2, MEE
 def customRegressionReport(trueValues, predictedValues, target_names):
     # Print individual regression metrics
-    mse = mean_squared_error(trueValues, predictedValues)
+    mse = np.mean((predictedValues - trueValues)**2)
     mee = np.mean(np.sqrt(np.sum((trueValues - predictedValues) ** 2, axis=1)))
 
     print(f"Mean Squared Error (MSE): {mse:.4f}")
@@ -407,7 +407,7 @@ def custom_cross_validation_regression(
 
         # Calculate the chosen regression metric
         if metric == RegressionMetrics.MSE:
-            score = mean_squared_error(y_test, predictions)
+            score = np.mean((predictions - y_test)**2)
         elif metric == RegressionMetrics.MAE:
             score = mean_absolute_error(y_test, predictions)
 
@@ -415,7 +415,7 @@ def custom_cross_validation_regression(
         denorm_predictions = denormalize_zscore(predictions, train_set, ["TARGET_x", "TARGET_y", "TARGET_z"])
         denorm_true_values = denormalize_zscore(y_test, train_set, ["TARGET_x", "TARGET_y", "TARGET_z"])
         # Calculate the denormalized MSE and MEE
-        denorm_mse.append(mean_squared_error(denorm_true_values, denorm_predictions))
+        denorm_mse.append(np.mean(denorm_predictions - denorm_true_values) ** 2)
         denorm_mee.append(np.mean(np.sqrt(np.sum((denorm_true_values - denorm_predictions) ** 2, axis=1))))
         
         print(f"Fold {fold + 1} {metric.value}: {score:.4f}")
