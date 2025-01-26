@@ -10,13 +10,9 @@ from project.utility.Enum import (
 )
 from project.utility.Search import Search
 from project.utility.utilityClassification import (
-    custom_cross_validation_classification,
-    one_hot_encode,
     customClassificationReport,
     preprocessTestingClassificationData,
-    removeId,
     preprocessTrainingClassificationData,
-    splitToFeaturesAndTargetClassification,
     min_max_scaling,
 )
 
@@ -222,7 +218,7 @@ if __name__ == "__main__":
     print("Real Testing")
 
     monk1_real_test_predictions_nn = nn1.predict(monk1_real_test_X)
-    mse_test, mse_f = customClassificationReport(
+    mse_test = customClassificationReport(
         monk1_real_test_Y, monk1_real_test_predictions_nn
     )
     mse_train = history_final["train_loss"]

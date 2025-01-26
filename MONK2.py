@@ -109,9 +109,9 @@ if __name__ == "__main__":
     # Define the parameter grid
     param_grid = {
         "learning_rate": [0.3],
-        "momentum": [0.9],
+        "momentum": [0.85],
         "lambd": [0.0],
-        "decay": [0.0],
+        "decay": [0.01],
         "dropout": [0.0],
         "batch_size": [6],
     }
