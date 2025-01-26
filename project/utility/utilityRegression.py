@@ -237,8 +237,6 @@ def preprocessRegrData(
         split_assessment_set, _, _ = zscore_normalization(
             split_assessment_set, means=train_means, stds=train_stds
         )
-        print("train_means: ", train_means)
-        print("train_stds: ", train_stds)
 
         # split the training set to features and target
         train_X, train_Y = splitToFeaturesAndTargetRegression(train_set, target_columns)
