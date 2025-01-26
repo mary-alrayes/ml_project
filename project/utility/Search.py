@@ -44,41 +44,60 @@ class Search:
         neurons=[],
         output_size=1,
     ):
-        best_score_class = -float("inf")
+        """
+        Perform grid search to find the best hyperparameters for a classification task.
+
+        Parameters:
+        - X: Input features (numpy array or dataframe).
+        - y: Target labels.
+        - epoch: Number of training epochs for each parameter combination.
+        - neurons: List specifying the number of neurons in each hidden layer.
+        - output_size: Size of the output layer.
+
+        Returns:
+        - best_params: Dictionary of the best hyperparameter combination.
+        - best_score_class: Best mean accuracy score obtained during cross-validation.
+        - best_history: Training history for the best parameter combination.
+        """
+
+        # Initialize variables to store the best score, parameters, and training history
+        best_score_class = -float("inf")  # Start with the lowest possible score
         best_params = None
         best_history = {}
 
-        # Generate all th combination for hyperparameters using itertools.product
+        # Generate all combinations of hyperparameters from the parameter grid
         param_combinations = product(
-            self.param_grid["learning_rate"],
-            self.param_grid["momentum"],
-            self.param_grid["lambd"],
-            self.param_grid["dropout"],
-            self.param_grid["decay"],
-            self.param_grid["batch_size"],
+            self.param_grid["learning_rate"],  # Learning rate values
+            self.param_grid["momentum"],  # Momentum values
+            self.param_grid["lambd"],  # Regularization parameter (lambda)
+            self.param_grid["dropout"],  # Dropout rate values
+            self.param_grid["decay"],  # Learning rate decay values
+            self.param_grid["batch_size"],  # Batch size values
         )
 
+        # Iterate over each hyperparameter combination
         for params in param_combinations:
+            # Unpack the current hyperparameter values
             learning_rate, momentum, lambd, dropout, decay, batch_size = params
 
-            # Initialize the model with current parameters
+            # Initialize the model with the current set of hyperparameters
             model = self.model(
-                input_size=X.shape[1],
-                hidden_layers=neurons,
-                output_size=output_size,
-                activationType=self.activation_type,
-                learning_rate=learning_rate,
-                momentum=momentum,
-                lambd=lambd,
-                regularizationType=self.regularization_type,
-                task_type=TaskType.CLASSIFICATION,
-                initialization=self.initialization,
-                nesterov=self.nesterov,
-                decay=decay,
-                dropout_rate=dropout,
+                input_size=X.shape[1],  # Number of input features
+                hidden_layers=neurons,  # Hidden layer configuration
+                output_size=output_size,  # Output layer size
+                activationType=self.activation_type,  # Activation function type
+                learning_rate=learning_rate,  # Current learning rate
+                momentum=momentum,  # Current momentum value
+                lambd=lambd,  # Current regularization lambda
+                regularizationType=self.regularization_type,  # Regularization type (L1, L2, etc.)
+                task_type=TaskType.CLASSIFICATION,  # Task type (classification)
+                initialization=self.initialization,  # Weight initialization method
+                nesterov=self.nesterov,  # Whether to use Nesterov momentum
+                decay=decay,  # Current learning rate decay
+                dropout_rate=dropout,  # Current dropout rate
             )
 
-            # Perform cross-validation to get the average accuracy
+            # Perform cross-validation to evaluate the model
             mean_accuracy, accuracies, historyValidation = (
                 custom_cross_validation_classification(
                     model=model,
@@ -89,16 +108,17 @@ class Search:
                 )
             )
 
+            # Use the mean accuracy as the score for the current parameter combination
             score = mean_accuracy
 
-            # Print parameters and  score obtained
+            # Print the current parameters and the corresponding score for debugging
             print(
                 f"Grid Search: LR={learning_rate}, Momentum={momentum}, Lambda={lambd}, "
                 f"Dropout={dropout}, Decay={decay}, Batch Size={batch_size}, Score={mean_accuracy:.4f}"
             )
             print("-----------------------------------------------------")
 
-            # Update the best parameters if it finds a better score
+            # Update the best parameters if the current score is higher than the best score so far
             if score > best_score_class:
                 best_score_class = score
                 best_params = {
@@ -111,7 +131,7 @@ class Search:
                 }
                 best_history = historyValidation
 
-        # Validate the best parameters and best score
+        # Print the best parameters and score, or a message if no valid parameters were found
         if best_params is not None:
             print(
                 f"\nBest Parameters: {best_params}, Best Score: {best_score_class:.4f}"
@@ -119,6 +139,7 @@ class Search:
         else:
             print("\nNo valid parameters found during grid search.")
 
+        # Return the best parameters, the best score, and the training history for the best parameters
         return best_params, best_score_class, best_history
 
     # function to perform grid search for regression

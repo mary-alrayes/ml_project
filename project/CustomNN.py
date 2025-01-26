@@ -456,6 +456,7 @@ class CustomNeuralNetwork:
 
                 # Early stopping logic
                 if early_stopping:
+
                     patience_counter, should_stop = self._check_early_stopping(
                         test_loss, best_test_loss, patience_counter, patience
                     )
@@ -487,8 +488,8 @@ class CustomNeuralNetwork:
                 "train_loss": [],
                 "train_mee": [],
                 "epoch": [],
-                "test_loss": [],
-                "test_mee": [],
+                "val_loss": [],
+                "val_mee": [],
             }
 
     def _adjust_learning_rate(self, epoch):
@@ -552,6 +553,7 @@ class CustomNeuralNetwork:
             best_test_loss = test_loss
             patience_counter = 0  # Reset patience counter if validation improves
         else:
+            print("increment early stopping")
             patience_counter += 1  # Increment patience counter
 
         should_stop = patience_counter >= patience
@@ -587,8 +589,8 @@ class CustomNeuralNetwork:
                 test_mee = np.mean(
                     np.sqrt(np.sum((y_test - test_predictions) ** 2, axis=1))
                 )
-                history["test_mee"].append(test_mee)
-                history["test_loss"].append(test_loss)
+                history["val_mee"].append(test_mee)
+                history["val_loss"].append(test_loss)
 
     def reset_weights(self):
         """

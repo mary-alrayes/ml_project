@@ -12,7 +12,7 @@ from project.utility.Enum import (
     InitializationType,
 )
 from project.utility.Search import Search
-from project.utility.utilityClassification import (
+from project.utility.utilityRegression import (
     customRegressionReport,
     preprocessRegrData,
     save_predictions_to_csv,
