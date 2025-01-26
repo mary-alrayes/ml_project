@@ -111,7 +111,7 @@ class Search:
             # Use the mean accuracy as the score for the current parameter combination
             score = mean_accuracy
 
-            # Print the current parameters and the corresponding score for debugging
+            # Print the current parameters and the corresponding score
             print(
                 f"Grid Search: LR={learning_rate}, Momentum={momentum}, Lambda={lambd}, "
                 f"Dropout={dropout}, Decay={decay}, Batch Size={batch_size}, Score={mean_accuracy:.4f}"

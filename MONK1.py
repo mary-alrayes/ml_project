@@ -112,11 +112,11 @@ if __name__ == "__main__":
     # Define the parameter grid
     param_grid = {
         "learning_rate": [0.1],
-        "momentum": [0.8],
+        "momentum": [0.9],
         "lambd": [0.0],
-        "decay": [0.0],
+        "decay": [0.2],
         "dropout": [0.0],
-        "batch_size": [1],
+        "batch_size": [2],
     }
 
     # Initialize the Search class for grid search
@@ -138,7 +138,7 @@ if __name__ == "__main__":
             X=monk1_train_X,
             y=monk1_train_Y,
             epoch=200,
-            neurons=[6],
+            neurons=[4],
             output_size=1,
         )
     )
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=monk1_train_X.shape[1],
-        hidden_layers=[6],
+        hidden_layers=[4],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],

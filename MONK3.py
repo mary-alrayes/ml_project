@@ -109,12 +109,12 @@ if __name__ == "__main__":
     # ---------------------------------------------------
     # Define the parameter grid
     param_grid = {
-        "learning_rate": [0.1],
+        "learning_rate": [0.05],
         "momentum": [0.8],
-        "lambd": [0.005],
-        "decay": [0.5],
-        "dropout": [0.0],
-        "batch_size": [4],
+        "lambd": [0.0],
+        "decay": [0.8],
+        "dropout": [0.001],
+        "batch_size": [7],
     }
 
     print(f"Min X: {np.min(monk3_train_X)}, Max X: {np.max(monk3_train_X)}")
@@ -138,7 +138,7 @@ if __name__ == "__main__":
             monk3_train_X,
             monk3_train_Y,
             epoch=500,
-            neurons=[3],
+            neurons=[4],
             output_size=1,
         )
     )
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     # Define the network with dynamic hidden layers
     nn1 = CustomNeuralNetwork(
         input_size=monk3_train_X.shape[1],
-        hidden_layers=[3],
+        hidden_layers=[4],
         output_size=1,
         activationType=ActivationType.SIGMOID,
         learning_rate=best_params["learning_rate"],
