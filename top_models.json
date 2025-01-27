@@ -1,0 +1,162 @@
+[
+    {
+        "Model Index":1,
+        "Loss":0.0726154024,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.005,
+        "Decay":0.0001,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":true
+    },
+    {
+        "Model Index":2,
+        "Loss":0.0726192233,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.005,
+        "Decay":0.0,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":true
+    },
+    {
+        "Model Index":3,
+        "Loss":0.072631691,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.01,
+        "Decay":0.0001,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":false
+    },
+    {
+        "Model Index":4,
+        "Loss":0.0726470139,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.005,
+        "Decay":0.001,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":true
+    },
+    {
+        "Model Index":5,
+        "Loss":0.0726574588,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.01,
+        "Decay":0.0,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":false
+    },
+    {
+        "Model Index":6,
+        "Loss":0.0726667992,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.01,
+        "Decay":0.001,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":false
+    },
+    {
+        "Model Index":7,
+        "Loss":0.0726761543,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.005,
+        "Decay":0.0001,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":false
+    },
+    {
+        "Model Index":8,
+        "Loss":0.0726840086,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.005,
+        "Decay":0.001,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":false
+    },
+    {
+        "Model Index":9,
+        "Loss":0.0729362175,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.9,
+        "Lambda":0.005,
+        "Decay":0.0,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":false
+    },
+    {
+        "Model Index":10,
+        "Loss":0.0735732174,
+        "Hidden Layers":[
+            50,
+            60
+        ],
+        "Learning Rate":0.0025,
+        "Momentum":0.85,
+        "Lambda":0.005,
+        "Decay":0.0001,
+        "Dropout":0.01,
+        "activationType":"RELU",
+        "Initialization":"XAVIER",
+        "Nesterov":false
+    }
+]

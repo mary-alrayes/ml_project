@@ -89,15 +89,15 @@ if __name__ == "__main__":
 
     # Define the parameter grid
     param_grid = {
-        'learning_rate': [0.001], #[0.0005, 0.001, 0.0025, 0.005, 0.01, 0.05], # Learning rate values
-        'momentum': [0.85], #[0.8, 0.85, 0.9], # Momentum values
-        'lambd': [0.01], #[0.005, 0.01, 0.05, 0.1], # Regularization lambda values
+        'learning_rate': [0.0005, 0.001, 0.0025], # Learning rate values
+        'momentum': [0.8, 0.85, 0.9], # Momentum values
+        'lambd': [0.005, 0.01, 0.05], # Regularization lambda values
         'hidden_layers': [[30,40], [40,50], [50,60]], # Number of neurons in the hidden layer
-        'dropout': [0.001], #[0.0, 0.01, 0.001], # Dropout rate values
-        'decay': [0.0], #[0.0, 0.0001, 0.0005, 0.001, 0.005], # Decay values
-        'initialization': [InitializationType.HE], #[InitializationType.XAVIER, InitializationType.HE], # Initialization values
+        'dropout': [0.0, 0.01], # Dropout rate values
+        'decay': [0.0, 0.0001, 0.001], # Decay values
+        'initialization': [InitializationType.XAVIER, InitializationType.HE], # Initialization values
         'nesterov': [False, True], # Nesterov values
-        'activationType': [ActivationType.RELU] #[ActivationType.RELU,  ActivationType.ELU],  # Activation values
+        'activationType': [ActivationType.RELU,  ActivationType.ELU],  # Activation values
     }
 
     # Initialize the Search class for grid search
@@ -227,6 +227,9 @@ if __name__ == "__main__":
     ensemble_predictions = []
     ensemble_train_predictions = []
 
+    # # Initialize a dictionary to store variance results for each model
+    model_prediction_variances = {}
+
     # Retrain each top model on the combined training + validation set
     for model_index, top_model in enumerate(top_models):
         #initialize data structures to store predictions for each repeat
@@ -324,11 +327,11 @@ if __name__ == "__main__":
             model_train_mee_per_epoch.append(denorm_train_mee_per_epoch_repeat)
             model_val_mee_per_epoch.append(denorm_val_mee_per_epoch_repeat)
 
-        # Append the results for this repeat
-        model_results["final_train_loss"].append(final_train_loss)
-        model_results["final_val_loss"].append(final_val_loss)
-        model_results["final_train_mee"].append(final_train_mee)
-        model_results["final_val_mee"].append(final_val_mee)
+            # Append the results for this repeat
+            model_results["final_train_loss"].append(final_train_loss)
+            model_results["final_val_loss"].append(final_val_loss)
+            model_results["final_train_mee"].append(final_train_mee)
+            model_results["final_val_mee"].append(final_val_mee)
 
         # Compute the mean loss/MEE over all repeats and epochs for this model
         mean_train_mse_per_epoch = np.mean(model_train_mse_per_epoch, axis=0)
@@ -349,6 +352,10 @@ if __name__ == "__main__":
         # Store the model predictions
         ensemble_predictions.append(mean_predictions)
         ensemble_train_predictions.append(mean_train_predictions)
+
+        # Compute the variance of the final loss across all repeats
+        model_results["final_train_loss_variance"] = np.var(model_results["final_train_loss"])
+        model_results["final_val_loss_variance"] = np.var(model_results["final_val_loss"])
 
         # Compute the mean across all repeats for this model
         model_results["final_train_loss"] = np.mean(model_results["final_train_loss"])
@@ -375,6 +382,10 @@ if __name__ == "__main__":
     # Save the results to a JSON file for later use
     with open("retraining_results.json", "w") as f:
         json.dump(results, f, indent=4)
+
+    # Save the prediction variances to a JSON file for later use
+    with open("prediction_variances.json", "w") as f:
+        json.dump(model_prediction_variances, f, indent=4)
 
     # ---------------Plot a graph with Loss and Training MSE---------------------
     plt.figure()
@@ -450,6 +461,28 @@ if __name__ == "__main__":
     train_y_denorm = denormalize_zscore(train_Y, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     train_nn_pred_denorm = denormalize_zscore(ensemble_mean_train_predictions, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     customRegressionReport(train_y_denorm, train_nn_pred_denorm, target_names=['TARGET_x', 'TARGET_y', 'TARGET_z'])
+
+    # Compute the variance of the predictions
+    prediction_variance = np.var(ensemble_predictions, axis=0)  # Variance for each prediction
+    print("Variance of predictions:\n", prediction_variance)
+
+    #---------------------------------Variance of the final losses---------------------------------
+
+    # Initialize lists to store the final losses across all models
+    final_train_losses = []
+    final_val_losses = []
+
+    for model_results_item in results:
+        final_train_losses.append(model_results_item["final_train_loss"])
+        final_val_losses.append(model_results_item["final_val_loss"])
+
+    # Calculate the variance of the losses across all models
+    final_train_loss_variance = np.var(final_train_losses)
+    final_val_loss_variance = np.var(final_val_losses)
+
+    # Print the final loss variance
+    print(f"Final train loss variance across all models: {final_train_loss_variance}")
+    print(f"Final validation loss variance across all models: {final_val_loss_variance}")
 
     # -----------------------------Test set prediction---------------------------
     train_final_set_X = np.vstack((train_X, assessment_X))

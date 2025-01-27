@@ -434,6 +434,12 @@ def custom_cross_validation_regression(
     return mean_score, fold_scores, mean_history, mean_denorm_mse, mean_denorm_mee
 
 # save the results in a csv file
-def save_predictions_to_csv(data, file_name):
-    data = pd.DataFrame(data, columns=["TARGET_x", "TARGET_y", "TARGET_z"])
-    data.to_csv(file_name, index=False)
+def save_predictions_to_csv(data, file_name, ids):
+    # Create a DataFrame with the predictions
+    predictions_df = pd.DataFrame(data, columns=["output_x", "output_y", "output_z"])
+    # Add the ID column
+    predictions_df["id"] = ids
+    # Reorder the columns to match the desired format: id, output_x, output_y, output_z
+    predictions_df = predictions_df[["id", "output_x", "output_y", "output_z"]]
+    # Save the DataFrame to a CSV file
+    predictions_df.to_csv(file_name, index=False)
