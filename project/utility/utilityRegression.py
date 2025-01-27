@@ -43,28 +43,6 @@ def min_max_scaling(X, feature_range=(-1, 1)):
 
     return X_scaled, X_min, X_max
 
-
-def min_max_rescale(X, X_min, X_max, feature_range=(-1, 1)):
-    """
-    Riscalatura di nuovi dati usando i min/max pre-calcolati.
-
-    Args:
-        X (numpy.ndarray): Nuovi dati da riscalare.
-        X_min (numpy.ndarray): Valori minimi delle feature dal set di training.
-        X_max (numpy.ndarray): Valori massimi delle feature dal set di training.
-        feature_range (tuple): Intervallo di riscalatura desiderato (default: [-1, 1]).
-
-    Returns:
-        numpy.ndarray: Nuovi dati scalati.
-    """
-    min_val, max_val = feature_range
-
-    X_scaled = (X - X_min) / (X_max - X_min + 1e-8)
-    X_scaled = X_scaled * (max_val - min_val) + min_val
-
-    return X_scaled
-
-
 # ----------------------------REGRESSION-----------------------------------
 # Split data into training and assessment sets
 def splitDataToTrainingAndAssessmentForRegression(
