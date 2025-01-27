@@ -108,13 +108,14 @@ if __name__ == "__main__":
 
     # ---------------------------------------------------
     # Define the parameter grid
+    # These are the final value after the tuning of the hyperparameter
     param_grid = {
         "learning_rate": [0.05],
         "momentum": [0.85],
-        "lambd": [0.003],
+        "lambd": [0.005],
         "decay": [0.8],
         "dropout": [0.0],
-        "batch_size": [7],
+        "batch_size": [8],
     }
 
     print(f"Min X: {np.min(monk3_train_X)}, Max X: {np.max(monk3_train_X)}")
@@ -171,6 +172,9 @@ if __name__ == "__main__":
         batch_size=best_params["batch_size"],
     )
 
+    monk3_train_prediction = nn1.predict(monk3_train_X)
+    customClassificationReport(monk3_train_Y, monk3_train_prediction)
+
     # Plot Training and Testing Loss (MSE)
     plt.figure()
     plt.plot(
@@ -225,8 +229,7 @@ if __name__ == "__main__":
     mse_test = customClassificationReport(
         monk3_real_test_Y, monk3_real_test_predictions_nn
     )
-    mse_train = history_final["train_loss"]
-    mse_train = np.mean(mse_train)
+    mse_train = np.mean((monk3_train_prediction - monk3_train_Y) ** 2)
 
     print(f"MSE(TR) : {mse_train}, MSE(TS): {mse_test}")
 

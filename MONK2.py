@@ -107,6 +107,7 @@ if __name__ == "__main__":
 
     # ---------------------------------------------------------------------
     # Define the parameter grid
+    # These are the final value after the tuning of the hyperparameter
     param_grid = {
         "learning_rate": [0.3],
         "momentum": [0.85],
@@ -171,6 +172,9 @@ if __name__ == "__main__":
         batch_size=best_params["batch_size"],
     )
 
+    monk2_train_prediction = nn1.predict(monk2_train_X)
+    customClassificationReport(monk2_train_Y, monk2_train_prediction)
+
     # Plot Training and Validation Loss (MSE)
     plt.figure()
     plt.plot(
@@ -225,8 +229,7 @@ if __name__ == "__main__":
     mse_test = customClassificationReport(
         monk2_real_test_Y, monk2_real_test_predictions_nn
     )
-    mse_train = history_final["train_loss"]
-    mse_train = np.mean(mse_train)
+    mse_train = np.mean((monk2_train_prediction - monk2_train_Y) ** 2)
 
     print(f"MSE(TR) : {mse_train}, MSE(TS): {mse_test}")
 
