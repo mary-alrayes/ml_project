@@ -34,7 +34,7 @@ class Search:
         self.decay = decay
         self.dropout = dropout
 
-    ## function to perform grid search for classification
+    # function to perform grid search for classification
 
     def grid_search_classification(
         self,
@@ -278,178 +278,63 @@ class Search:
 
         return best_params, best_score, [m for m, s in top_models], best_history, best_denorm_mse, best_denorm_mee
 
+    from itertools import product
+    import numpy as np
+
     def holdoutValidation(
-        self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1
+            self, X_train, y_train, X_val, y_val, epoch=200, neurons=[3], output_size=1
     ):
         best_score = -float("inf")
         best_params = None
 
-        for learning_rate in self.param_grid["learning_rate"]:
-            for momentum in self.param_grid["momentum"]:
-                for lambd in self.param_grid["lambd"]:
-                    # Initialize a new model instance with current parameters
-                    model = self.model(
-                        input_size=X_train.shape[1],
-                        hidden_layers=neurons,
-                        output_size=output_size,
-                        activationType=self.activation_type,
-                        learning_rate=learning_rate,
-                        momentum=momentum,
-                        lambd=lambd,
-                        regularizationType=self.regularization_type,
-                        nesterov=self.nesterov,
-                        decay=self.decay,
-                    )
-
-                    model.fit(X_train, y_train, epochs=epoch, batch_size=8)
-
-                    predictions = model.predict(X_val)
-                    # Convert probabilities to binary predictions if necessary
-                    # predictions = (predictions > 0.5).astype(int)
-                    score = np.mean(predictions.flatten() == y_val.flatten())
-                    # Log the parameters and score for debugging
-                    print(
-                        f"Testing: Learning Rate={learning_rate}, Momentum={momentum}, Lambda={lambd}, Score={score:.4f}"
-                    )
-                    print("-----------------------------------------------------")
-                    # Update the best score and parameters if a better score is found
-                    if score > best_score:
-                        best_score = score
-                        best_params = {
-                            "learning_rate": learning_rate,
-                            "momentum": momentum,
-                            "lambd": lambd,
-                        }
-        return best_params, best_score
-
-    import random
-
-    def random_grid_search(
-        self,
-        X,
-        y,
-        n_iter=10,
-        epoch=100,
-        neurons=[1],
-        output_size=1,
-        validation_func=None,
-    ):
-        best_score = -float("inf")
-        best_params = None
-
-        # Randomly sample parameter combinations
-        param_combinations = list(product(*self.param_grid.values()))
-        sampled_combinations = random.sample(
-            param_combinations, min(n_iter, len(param_combinations))
+        # Generate all combinations of hyperparameters from the parameter grid
+        param_combinations = product(
+            self.param_grid["learning_rate"],
+            self.param_grid["momentum"],
+            self.param_grid["lambd"],
+            self.param_grid["dropout"],
+            self.param_grid["decay"],
+            self.param_grid["batch_size"],
         )
 
-        for params in sampled_combinations:
-            param_dict = dict(zip(self.param_grid.keys(), params))
-
-            # Initialize model with current parameters
+        for learning_rate, momentum, lambd, dropout, decay, batch_size in param_combinations:
+            # Initialize a new model instance with current parameters
             model = self.model(
-                input_size=X.shape[1],
+                input_size=X_train.shape[1],
                 hidden_layers=neurons,
                 output_size=output_size,
                 activationType=self.activation_type,
-                learning_rate=param_dict["learning_rate"],
-                momentum=param_dict["momentum"],
-                lambd=param_dict["lambd"],
+                learning_rate=learning_rate,
+                momentum=momentum,
+                lambd=lambd,
                 regularizationType=self.regularization_type,
                 nesterov=self.nesterov,
-                decay=param_dict["decay"],
-                dropout_rate=param_dict["dropout"],
+                decay=decay,
+                dropout_rate=dropout,
             )
 
-            # Perform validation
-            mean_score, _ = validation_func(model, X, y, epoch, param_dict)
+            model.fit(X_train, y_train, epochs=epoch, batch_size=batch_size)
+            predictions = model.predict(X_val)
 
-            print(f"Params: {param_dict}, Score: {mean_score:.4f}")
+            # Convert probabilities to binary predictions if necessary
+            score = np.mean(predictions.flatten() == y_val.flatten())
+
+            print(
+                f"Testing: Learning Rate={learning_rate}, Momentum={momentum}, Lambda={lambd}, Dropout={dropout}, Decay={decay}, Batch Size={batch_size}, Score={score:.4f}"
+            )
             print("-----------------------------------------------------")
 
-            # Update best parameters
-            if mean_score > best_score:
-                best_score = mean_score
-                best_params = param_dict
+            # Update the best score and parameters if a better score is found
+            if score > best_score:
+                best_score = score
+                best_params = {
+                    "learning_rate": learning_rate,
+                    "momentum": momentum,
+                    "lambd": lambd,
+                    "dropout": dropout,
+                    "decay": decay,
+                    "batch_size": batch_size,
+                }
 
-        print(f"\nBest Parameters: {best_params}, Best Score: {best_score:.4f}")
         return best_params, best_score
-
-    """def random_grid_search(
-            self, X, y, n_iter=10, epoch=100, neurons=[1], output_size=1
-    ):
-        Perform random grid search, including patience as a parameter
-
-        best_score = -float("inf")
-        best_params = None
-
-        # Randomly sample `n_iter` distinct parameters from each grid
-        sampled_learning_rates = random.sample(
-            self.param_grid["learning_rate"],
-            min(n_iter, len(self.param_grid["learning_rate"])),
-        )
-        sampled_momentum = random.sample(
-            self.param_grid["momentum"], min(n_iter, len(self.param_grid["momentum"]))
-        )
-        sampled_lambd = random.sample(
-            self.param_grid["lambd"], min(n_iter, len(self.param_grid["lambd"]))
-        )
-
-        for learning_rate in sampled_learning_rates:
-            for momentum in sampled_momentum:
-                for lambd in sampled_lambd:
-
-                    # Dynamically create a new model instance for each combination of parameters
-                    model = self.model(
-                        input_size=X.shape[1],
-                        hidden_layers=neurons,
-                        output_size=output_size,
-                        activationType=self.activation_type,
-                        learning_rate=learning_rate,
-                        momentum=momentum,
-                        lambd=lambd,
-                        regularizationType=self.regularization_type,
-                        task_type=self.task_type,
-                        nesterov=self.nesterov,
-                        decay=self.decay
-                    )
-                    if self.task_type == TaskType.CLASSIFICATION:
-                        # Train the model with cross validation
-                        mean_accuracy, accuracies = (
-                            custom_cross_validation_classification(
-                                model, X, y, epoch=epoch
-                            )
-                        )
-                        score = mean_accuracy
-                        print(
-                            f"Learning Rate: {learning_rate}, Momentum: {momentum}, Lambda: {lambd}, Score: {score}"
-                        )
-                        print("-----------------------------------------------------")
-                    else:
-                        # Train the model
-                        mean_score, scores = custom_cross_validation_regression(
-                            model, X, y, epoch=epoch
-                        )
-                        score = mean_score
-                        # Log the parameters and score for debugging
-                        print(
-                            f"Learning Rate: {learning_rate}, Momentum: {momentum}, Lambda: {lambd}, Score: {mean_score}"
-                        )
-                        print("-----------------------------------------------------")
-                    # Update the best score and parameters
-                    if score > best_score:
-                        best_score = score
-                        best_params = {
-                            "learning_rate": learning_rate,
-                            "momentum": momentum,
-                            "lambd": lambd,
-                        }
-            # Ensure best_params and best_score are consistent
-            if best_params is not None:
-                print(f"\nBest Parameters: {best_params}, Best Score: {best_score:.4f}")
-            else:
-                print("\nNo valid parameters found during grid search.")
-
-        return best_params, best_score"""
-
     
