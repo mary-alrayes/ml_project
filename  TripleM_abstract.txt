@@ -1,0 +1,7 @@
+
+The final model is an ensemble of ten neural networks, selected through grid search with k-fold cross-validation.
+Each network has two hidden layers with 50 and 60 units, uses the ReLU activation function,
+and Xavier weight initialization.
+To ensure robustness, each model is retrained eight times, leveraging the diversity introduced by the random
+reinitialization of weights.
+The ensemble combines the best models, reducing overfitting and improving generalization.
