@@ -462,10 +462,6 @@ if __name__ == "__main__":
     train_nn_pred_denorm = denormalize_zscore(ensemble_mean_train_predictions, data=train_set, target_columns=['TARGET_x', 'TARGET_y', 'TARGET_z'])
     customRegressionReport(train_y_denorm, train_nn_pred_denorm, target_names=['TARGET_x', 'TARGET_y', 'TARGET_z'])
 
-    # Compute the variance of the predictions
-    prediction_variance = np.var(ensemble_predictions, axis=0)  # Variance for each prediction
-    print("Variance of predictions:\n", prediction_variance)
-
     #---------------------------------Variance of the final losses---------------------------------
 
     # Initialize lists to store the final losses across all models
