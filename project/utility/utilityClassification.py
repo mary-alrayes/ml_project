@@ -52,31 +52,6 @@ def min_max_scaling(X, feature_range=(-1, 1)):
 
 # ----------------------------CLASSIFICATION-----------------------------------
 
-
-# function to balance data
-def balanceData(data):
-    # Separate majority and minority classes
-    majority_class = data[data["target"] == 1]
-    minority_class = data[data["target"] == 0]
-
-    # Oversample the minority class to match the majority class size
-    minority_class = resample(
-        minority_class,
-        replace=True,  # Sample with replacement
-        n_samples=len(majority_class),  # Match majority class size
-        random_state=62,
-    )  # For reproducibility
-
-    # Combine the oversampled minority class with the majority class
-    data = pd.concat([majority_class, minority_class])
-
-    # Shuffle the balanced dataset
-    data = data.sample(frac=1, random_state=62).reset_index(drop=True)
-
-    # Print the balanced dataset for verification
-    return data
-
-
 # function to split data to features and target
 def splitToFeaturesAndTargetClassification(data):
     X = data.drop("target", axis=1).values.tolist()
@@ -84,7 +59,7 @@ def splitToFeaturesAndTargetClassification(data):
     return X, Y
 
 
-## function to perform one hot encoding on a specific column
+# function to perform one hot encoding on a specific column
 def one_hot_encode(columnData):
     # Step 1: find all unique values in the column
     unique_categories = list(set(columnData))

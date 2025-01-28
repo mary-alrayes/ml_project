@@ -12,7 +12,7 @@ from project.utility.Search import Search
 from project.utility.utilityClassification import (
     customClassificationReport,
     preprocessTrainingClassificationData,
-    min_max_scaling, balanceData,
+    min_max_scaling,
 )
 from project.utility.utilityClassification import preprocessTestingClassificationData
 
@@ -77,11 +77,6 @@ if __name__ == "__main__":
     monk2_train_X, monk2_train_Y = preprocessTrainingClassificationData(
         monk2_train_data
     )
-
-    # balancing data cause the target column is not balanced
-    print("Class distribution before balancing:", monk2_train_data["target"].value_counts())
-    monk2_train_data = balanceData(monk2_train_data)
-    print("Class distribution after balancing:", monk2_train_data["target"].value_counts())
 
     # Reshape inputs
     monk2_train_X = monk2_train_X.reshape(monk2_train_X.shape[0], -1)
